@@ -1,0 +1,5 @@
+**/*.env
+
+heavy_tails/
+
+figures/
