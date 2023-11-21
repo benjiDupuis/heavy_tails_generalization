@@ -17,6 +17,13 @@ def generate_levy_for_simulation(d: int,
                                  alpha: float,
                                  eta: float,
                                  loc: float = 0.) -> np.ndarray:
+    """
+    d: ambiant dimension
+    n_iter: number of iterations
+    alpha: tail index
+    eta: learning rate (to correctly scale the time step)
+    loc: "mean", set to 0
+    """
     
     assert (1. < alpha and alpha <= 2.), "alpha is expected to be in (1,2]"
 
@@ -29,7 +36,7 @@ def generate_levy_for_simulation(d: int,
     else:
         
         phi = levy_stable.rvs(alpha/2, 1, loc=loc,\
-                               scale=2. * np.cos(np.pi*alpha/4)**(2/alpha),\
+                               scale=2. * np.cos(np.pi*alpha/4.)**(2./alpha),\
                                   size=(n_iter, 1)) 
         
         assert (phi >= 0.).all(), "skewed levy process should always be positive"

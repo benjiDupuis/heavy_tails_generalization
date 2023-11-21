@@ -63,6 +63,6 @@ class GaussianExperiment(Experiment):
         assert gradient.ndim == 1
         assert gradient.size == w.size
 
-        # return gradient
-        return np.zeros(self.d)
+        return gradient
+        # return np.zeros(self.d)
     

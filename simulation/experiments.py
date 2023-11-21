@@ -137,6 +137,8 @@ class Experiment:
         risk_tab[0] = self.risk(w)
         er_tab[0] = self.empirical_risk(w, data)
 
+        # logger.debug(risk_tab[0])
+
         # Generate all the levy increments
         levy = self.generate_levy(alpha, loc = 0.)
         assert levy.shape == (self.horizon, self.d)
@@ -150,6 +152,8 @@ class Experiment:
             er_tab[t] = self.empirical_risk(w, data)
 
         gen_tab = risk_tab - er_tab
+
+        # logger.debug(np.linalg.norm(w)/np.sqrt(self.d))
 
         return gen_tab, risk_tab
     
@@ -205,6 +209,7 @@ class Experiment:
         logger.info(f"Running {n_exp} simulations")
 
 
+        logger.warning(f"Generating data and data_proxy")
         data = self.generate_data()
         data_proxy = self.generate_data_proxy(data)
 
@@ -257,7 +262,9 @@ class Experiment:
                         "d": self.d,
                         "eta": self.eta,
                         "horizon": self.horizon,
-                        "total_time": self.horizon * self.eta}
+                        "total time": self.horizon * self.eta,
+                        "Nb of datasets": n_dataset,
+                        "Nb of exp.": n_exp}
         logger.info(
             f"Experiment parameters: {json.dumps(info_dict, indent=2)}")
 
@@ -267,7 +274,7 @@ class Experiment:
         gen_T_tab_list = []
         gen_sup_tab_list = []
 
-        for _ in tqdm(range(n_exp)):
+        for _ in tqdm(range(n_dataset)):
 
             alpha_tab, gen_T_tab, gen_sup_tab =\
                 self.run_simulations_one_dataset(n_exp,
