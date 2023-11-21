@@ -309,6 +309,7 @@ class Simulation:
 
             plt.scatter(sigma_tab, 
                      gen_grid[:, a])
+            plt.xscale("log")
             
             plt.title(f'Generalization for alpha = {alpha_tab[a]}')
 
@@ -320,7 +321,7 @@ class Simulation:
         
 def main(n=100, d = 10, n_val = 100, eta=0.01,\
           horizon=1000, n_ergodic=20, n_sigma: int=5,
-          n_alpha: int = 5, init_std: float = 10.):
+          n_alpha: int = 5, init_std: float = 1.):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\
                            w_init_std=init_std, n_val=n_val)
