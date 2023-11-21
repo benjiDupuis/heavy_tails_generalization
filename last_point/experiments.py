@@ -279,6 +279,9 @@ class Simulation:
                       sigma_tab: np.ndarray,
                       alpha_tab: np.ndarray,
                       output_dir: str):
+        
+        if not Path(output_dir).is_dir():
+            Path(output_dir).mkdir()
 
         output_dir = Path(output_dir) / f"results_d_{self.d}_{int(time.time())}"
         if not output_dir.is_dir():
@@ -290,10 +293,8 @@ class Simulation:
 
             plt.figure()
 
-            plt.plot(alpha_tab, 
-                     gen_grid[s, :],
-                     "x")
-
+            plt.scatter(alpha_tab, 
+                     gen_grid[s, :])
             
             plt.title(f'Generalization for sigma = {sigma_tab[s]}')
 
@@ -306,9 +307,8 @@ class Simulation:
 
             plt.figure()
 
-            plt.plot(sigma_tab, 
+            plt.scatter(sigma_tab, 
                      gen_grid[:, a])
-
             
             plt.title(f'Generalization for alpha = {alpha_tab[a]}')
 
