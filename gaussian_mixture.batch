@@ -20,6 +20,6 @@ module purge
 
 # Set your conda environment
 source /home/$USER/.bashrc
-conda activate py39_phd
+conda activate heavytails
 
 PYTHONPATH=$PWD python last_point/experiments.py "$@"
