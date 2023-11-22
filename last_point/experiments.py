@@ -237,10 +237,10 @@ class Simulation:
     @staticmethod
     def stable_normalization(alpha: float, d: float) -> float:
 
-        alpha_factor = 8. * alpha * np.pow(2., alpha - 1) / ((2. - alpha) * gamma(1. - alpha/2.))
+        alpha_factor = 8. * alpha * np.power(2., alpha - 1) / ((2. - alpha) * gamma(1. - alpha/2.))
         alpha_dim_factor = gamma((d + alpha) / 2.) / (d * gamma(d / 2.))
 
-        return np.pow(alpha_factor * alpha_dim_factor, 1. / alpha)
+        return np.power(alpha_factor * alpha_dim_factor, 1. / alpha)
 
     @staticmethod
     def linear_regression(x_tab: np.ndarray, 
@@ -413,16 +413,18 @@ class Simulation:
         
 def main(n=100, d = 10, n_val = 100, eta=0.01,\
           horizon=1000, n_ergodic=20, n_sigma: int=5,
-          n_alpha: int = 5, init_std: float = 1.):
+          n_alpha: int = 5, init_std: float = 1.,
+          normalization: bool = True):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\
-                           w_init_std=init_std, n_val=n_val)
+                           w_init_std=init_std, n_val=n_val,
+                             normalization=normalization)
 
     gen_grid, sigma_tab, alpha_tab = simulator.simulation(horizon,
                                                           n_ergodic,
                                                           eta)
     
-    simulator.plot_results(gen_grid, sigma_tab, alpha_tab, "tests")
+    simulator.plot_results(gen_grid, sigma_tab, alpha_tab, "figures")
 
 
 if __name__ == "__main__":
