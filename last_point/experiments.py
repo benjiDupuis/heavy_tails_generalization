@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from loguru import logger
+from scipy.special import gamma
 from tqdm import tqdm
 from typing import Tuple
 
@@ -214,6 +215,7 @@ class Simulation:
                  alpha_max: float = 1.95,
                  n_alpha: int = 10,
                  w_init_std: float = 0.1,
+                 normalization: bool = False
                  ):
         
         self.d: int = d
@@ -227,6 +229,43 @@ class Simulation:
         self.n: int = n
         self.n_classes: int = n_classes
         self.n_val: int = n_val
+        self.normalization: bool = normalization
+
+    def __str__(self) -> str:
+        return json.dumps(self.__dict__, indent=2)
+
+    @staticmethod
+    def stable_normalization(alpha: float, d: float) -> float:
+
+        alpha_factor = 8. * alpha * np.pow(2., alpha - 1) / ((2. - alpha) * gamma(1. - alpha/2.))
+        alpha_dim_factor = gamma((d + alpha) / 2.) / (d * gamma(d / 2.))
+
+        return np.pow(alpha_factor * alpha_dim_factor, 1. / alpha)
+
+    @staticmethod
+    def linear_regression(x_tab: np.ndarray, 
+                          y_tab: np.ndarray, 
+                          threshold: float = 1.e-6) -> float:
+        """
+        x_tab and y_tab are supposed to be one dimensional
+        ie the data is scalar
+        this performs linear regression y = ax + b and returns a
+        """
+        assert x_tab.ndim == 1, x_tab.shape
+        assert y_tab.ndim == 1, y_tab.shape
+        assert x_tab.shape == y_tab.shape, (x_tab.shape, y_tab.shape)
+
+        n = len(x_tab)
+
+        num = (x_tab * y_tab).sum() - x_tab.sum() * y_tab.sum() / n
+        den = (x_tab * x_tab).sum() - x_tab.sum()**2 / n
+
+        if den < threshold:
+            logger.warning("Inifnite or undefined slope")
+            return None
+        
+        return num / den
+
 
     def simulation(self, 
                    horizon:int,
@@ -259,10 +298,15 @@ class Simulation:
         for s in tqdm(range(self.n_sigma)):
             for a in tqdm(range(self.n_alpha)):
 
+                if self.normalization:
+                    sigma_simu = Simulation.stable_normalization(alpha_tab[a], self.d) * sigma_tab[s]
+                else:
+                    sigma_simu = sigma_tab[s]
+
                 generalization, _ = run_one_simulation(horizon,
                                                        self.d,
                                                        eta,
-                                                       sigma_tab[s],
+                                                       sigma_simu,
                                                        alpha_tab[a],
                                                        initialization,
                                                        data,
@@ -273,6 +317,28 @@ class Simulation:
         logger.info(f"{self.n_sigma * self.n_alpha} simulations completed successfully")
 
         return gen_grid, sigma_tab, alpha_tab
+    
+    def all_linear_regression(self,
+                                gen_grid: np.ndarray,
+                                sigma_tab: np.ndarray,
+                                alpha_tab: np.ndarray) -> (np.ndarray, np.ndarray):
+        """
+        Returns the regression of the gen with respect to log(1/sigma), for each alpha
+        and the regression of the gen with respect to alpha, for each sigma
+        """
+
+        # Regression gen/log(1/sigma)
+        alpha_reg = np.zeros(self.n_alpha)
+        for a in range(self.n_alpha):
+            alpha_reg[a] = Simulation.linear_regression(np.log(1./sigma_tab), gen_grid[:, a])
+
+        # Regression gen/alpha
+        correlation_reg = np.zeros(self.n_sigma)
+        for s in range(self.n_sigma):
+            correlation_reg[s] = Simulation.linear_regression(alpha_tab, gen_grid[s, :])
+
+        return alpha_reg, correlation_reg
+
     
     def plot_results(self,
                       gen_grid: np.ndarray,
@@ -287,15 +353,20 @@ class Simulation:
         if not output_dir.is_dir():
             output_dir.mkdir()
 
-        logger.info(f"Saving all results in {str(output_dir)}")
+        json_path = (output_dir / "simulation").with_suffix(".json")
+        logger.info(f"Saving JSON file in {str(json_path)}")
+        with open(str(json_path), "w") as json_file:
+            json.dump(self.__dict__, json_file, indent = 2)
 
+        npy_path = (output_dir / "generalization").with_suffix(".npy")
+        logger.info(f"Saving NPY file in {str(npy_path)}")
+        np.save(str(npy_path), gen_grid)
+
+        logger.info(f"Saving all figures in {str(output_dir)}") 
         for s in tqdm(range(self.n_sigma)):
 
             plt.figure()
-
-            plt.scatter(alpha_tab, 
-                     gen_grid[s, :])
-            
+            plt.scatter(alpha_tab, gen_grid[s, :])          
             plt.title(f'Generalization for sigma = {sigma_tab[s]}')
 
             # Saving the figure
@@ -306,17 +377,38 @@ class Simulation:
         for a in tqdm(range(self.n_alpha)):
 
             plt.figure()
-
-            plt.scatter(sigma_tab, 
-                     gen_grid[:, a])
-            plt.xscale("log")
-            
+            plt.scatter(sigma_tab, gen_grid[:, a])
+            plt.xscale("log")          
             plt.title(f'Generalization for alpha = {alpha_tab[a]}')
 
             # Saving the figure
             fig_name = (f"alpha_{alpha_tab[a]}").replace(".","_")
             output_path = (output_dir / fig_name).with_suffix(".png")
             plt.savefig(str(output_path))
+
+        # Finally: the linear regressions
+        alpha_reg, correlation_reg = self.all_linear_regression(
+            gen_grid,
+            sigma_tab,
+            alpha_tab
+        )
+        
+        if all(alpha_reg[k] is not None for k in range(self.n_alpha)):
+            alpha_reg_path = (output_dir / "alpha_regression").with_suffix(".png")
+            plt.figure()
+            plt.plot(np.linspace(1,2, 100), np.linspace(1,2,100), color = "r")
+            plt.scatter(alpha_tab, alpha_reg)
+            plt.title("Regression of alpha from the generalization bound")
+            plt.savefig(str(alpha_reg_path))
+
+        if all(correlation_reg[k] is not None for k in range(self.n_sigma)):
+            correlation_reg_path = (output_dir / "correlation_regression").with_suffix(".png")
+            plt.figure()
+            plt.scatter(sigma_tab, correlation_reg)
+            plt.yscale("log")
+            plt.title("Correlation between generalization and alpha, in function of sigma")
+            plt.savefig(str(correlation_reg_path))
+
 
         
 def main(n=100, d = 10, n_val = 100, eta=0.01,\
@@ -330,9 +422,13 @@ def main(n=100, d = 10, n_val = 100, eta=0.01,\
                                                           n_ergodic,
                                                           eta)
     
-    simulator.plot_results(gen_grid, sigma_tab, alpha_tab, "figures")
+    simulator.plot_results(gen_grid, sigma_tab, alpha_tab, "tests")
 
 
 if __name__ == "__main__":
+    """
+    Test command: 
+    PYTHONPATH=$PWD python last_point/experiments.py --n 10 --d 2 --n_val 10 --horizon 10 --n_sigma 3 --n_alpha 3
+    """
 
     fire.Fire(main)
