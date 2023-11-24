@@ -373,6 +373,7 @@ class Simulation:
             fig_name = (f"sigma_{sigma_tab[s]}").replace(".","_")
             output_path = (output_dir / fig_name).with_suffix(".png")
             plt.savefig(str(output_path))
+            plt.close()
 
         for a in tqdm(range(self.n_alpha)):
 
@@ -385,6 +386,9 @@ class Simulation:
             fig_name = (f"alpha_{alpha_tab[a]}").replace(".","_")
             output_path = (output_dir / fig_name).with_suffix(".png")
             plt.savefig(str(output_path))
+            plt.close()
+
+
 
         # Finally: the linear regressions
         alpha_reg, correlation_reg = self.all_linear_regression(
@@ -400,6 +404,8 @@ class Simulation:
             plt.scatter(alpha_tab, alpha_reg)
             plt.title("Regression of alpha from the generalization bound")
             plt.savefig(str(alpha_reg_path))
+            plt.close()
+
 
         if all(correlation_reg[k] is not None for k in range(self.n_sigma)):
             correlation_reg_path = (output_dir / "correlation_regression").with_suffix(".png")
@@ -408,6 +414,8 @@ class Simulation:
             plt.yscale("log")
             plt.title("Correlation between generalization and alpha, in function of sigma")
             plt.savefig(str(correlation_reg_path))
+            plt.close()
+
 
 
         
