@@ -153,7 +153,7 @@ class Simulation:
                 accuracies.append(accuracy_tab)
                 estimators.append(estimator)
 
-                logger.info(f"train accuracy: {round(100. * accuracy_tab[-1][0], 2)} %")
+                logger.info(f"train accuracy: {round(100. * accuracy_tab[-1][0].item(), 2)} %")
         
         logger.info(f"{self.n_sigma * self.n_alpha} simulations completed successfully")
 
