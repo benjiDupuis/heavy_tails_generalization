@@ -6,13 +6,12 @@ import fire
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn as nn
 from loguru import logger
 from scipy.special import gamma
 from tqdm import tqdm
-from typing import Tuple
 
-from simulation.levy import generate_levy_for_simulation
+from last_point.gaussian_mixture import sample_standard_gaussian_mixture
+from last_point.simulation import run_one_simulation
 
 """
 An experiment is characterized by:
@@ -27,179 +26,6 @@ The methods should be:
  - so no data_proxy is needed
  - everything is estimated: the squared case was stupid because of its multiplicativity properties
 """
-
-class LinearModel(nn.Module):
-
-    def __init__(self, 
-                 input_dim: int = 10,
-                 bias: bool = False,
-                 n_classes: int = 2):
-        super(LinearModel, self).__init__()
-        
-        self.input_dim: int = input_dim
-        self.bias: bool = bias
-        self.layer = nn.Linear(self.input_dim, n_classes, bias = self.bias)
-
-    def get_vector(self):
-        # TODO: implement this
-        pass
-
-    def forward(self, x):
-        x = x.view(x.size(0), self.input_dim) # I don't know why we have this
-        x = self.layer(x)
-        return x
-    
-    @torch.no_grad()
-    def add_noise(self, noise: torch.Tensor):
-        # This methods add a noise to the parameters of the networks
-        assert not self.bias, "For now we don't handle biases" 
-        # self.layer.weight.data = self.layer.weight.data + noise
-        self.layer.weight.add_(noise)
-
-    @torch.no_grad()
-    def initialization(self, w: torch.Tensor):
-        assert not self.bias, "For now we don't handle biases" 
-        assert self.layer.weight.data.shape == w.shape,\
-              (self.layer.weight.data.shape, w.shape)
-        self.layer.weight.data = w
-
-
-
-@torch.no_grad()
-def sample_standard_gaussian_mixture(dimension: int,
-                        n_per_class: int,
-                        n_classes: int = 2,
-                        means_std: float = 25,
-                        blobs_std: float = 100.)-> (torch.Tensor, torch.Tensor):
-    
-    # Device
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    
-    # Generate means of the blobs
-    means = means_std * np.random.normal(0., 1., size = n_classes)
-
-    # Generate each blob
-    # WARNING: it only works with scale standard gaussians 
-    blobs = []
-    labels = []
-    for i in range(n_classes):
-        blobs.append(means[i] +\
-                      blobs_std * torch.randn(size=(n_per_class, dimension)))    
-        labels.append(i * torch.ones(n_per_class, dtype=torch.int64))
-
-    # concatenate and random shuffle
-    x = torch.concatenate(blobs)
-    assert x.shape == (n_per_class * n_classes, dimension), x.shape
-    y = torch.concatenate(labels)
-    assert y.ndim == 1
-    assert y.shape[0] == n_per_class * n_classes, y.shape[0]
-
-    indices = list(np.arange(n_per_class * n_classes))
-    np.random.shuffle(indices)
-
-    return x.to(device)[indices, ...], y.to(device)[indices]
-    
-
-
-def run_one_simulation(horizon: int, 
-                        d: int,
-                        eta: float,
-                        sigma: float,
-                        alpha: float,
-                        initialization: torch.Tensor,
-                        data: Tuple[torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor],
-                        n_ergodic: int = 100,
-                        n_classes: int = 2):
-    """
-    Data format should be (x_train, y_train, x_val, y_val)
-    """
-    
-    # Sanity checks
-    assert horizon > 2, horizon
-    
-    # Device
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
-    # Seed
-    torch.random.seed()
-
-    # Define data
-    assert len(data) == 4, len(data)
-    x_train = data[0].to(device)
-    y_train = data[1].to(device)
-    x_val = data[2].to(device)
-    y_val = data[3].to(device)
-    assert x_train.ndim == 2
-    assert y_train.ndim == 1
-    assert x_val.ndim == 2
-    assert y_val.ndim == 1
-    assert x_train.shape[0] == y_train.shape[0]
-    assert x_train.shape[1] == x_val.shape[1]
-
-    n = x_train.shape[0]
-
-    # Define model, loss and optimizer
-    model = LinearModel(d, n_classes = n_classes).to(device) 
-    with torch.no_grad():
-        model.initialization(initialization)
-    opt = torch.optim.SGD(model.parameters(), lr = eta)
-    crit = nn.CrossEntropyLoss().to(device)
-
-    loss_tab = []
-    gen_tab = []
-
-    # Generate all noise
-    n_params = d * n_classes
-    noise = sigma * generate_levy_for_simulation(n_params, \
-                                         horizon + n_ergodic,
-                                         alpha,
-                                         eta)
-    # Loop
-    for k in range(horizon + n_ergodic):
-
-        # Validation if we are after the time horizon
-        if k >= horizon:
-            with torch.no_grad():
-                out_val = model(x_val)
-                loss_val = crit(out_val, y_val)
-
-        # evaluation of the empirical loss
-        # keep in mind that this is a full batch experiment
-        opt.zero_grad()
-        out = model(x_train)
-
-        assert out.shape == (n, n_classes), out.shape
-        loss = crit(out, y_train)
-
-        if torch.isnan(loss):
-            logger.error('Loss has gone nan ❌')
-            break
-
-        # calculate the gradients
-        loss.backward()
-
-        # Logging
-        loss_tab.append(loss.item())
-        if k >= horizon:
-            gen_tab.append(loss_val.item() - loss.item())
-
-        # Gradient step
-        opt.step()
-
-        # Adding the levy noise
-        with torch.no_grad():
-            model.add_noise(torch.from_numpy(noise[k].reshape(n_classes, d)).to(device))
-
-        
-
-    # Compute the estimated generalization at the end
-    gen_tab = np.array(gen_tab)
-    generalization = gen_tab.mean()
-
-    return generalization, loss_tab
-
-
-
 
 class Simulation:
 
@@ -279,9 +105,10 @@ class Simulation:
 
         # generate data
         n_per_class_train = self.n // self.n_classes
-        x_train, y_train = sample_standard_gaussian_mixture(self.d, n_per_class_train)
+        x_train, y_train, means = sample_standard_gaussian_mixture(self.d, n_per_class_train)
         n_per_class_val = self.n_val // self.n_classes
-        x_val, y_val = sample_standard_gaussian_mixture(self.d, n_per_class_val)
+        x_val, y_val, _ = sample_standard_gaussian_mixture(self.d, n_per_class_val, 
+                                                           random_centers=False, means_deterministic=means)
 
         data = (x_train, y_train, x_val, y_val)
 
@@ -292,8 +119,14 @@ class Simulation:
         alpha_tab = np.linspace(self.alpha_min, self.alpha_max, self.n_alpha)
 
         # Generate initialization that will be shared among simulations
-        initialization = self.w_init_std * \
-            torch.randn(size=(self.n_classes,self.d)).to(device)
+        # initialization = self.w_init_std * \
+        #     torch.randn(size=(self.n_classes,self.d)).to(device)
+        initialization = means.float().to(device)
+
+        # Initialize some logging
+        losses = []
+        accuracies = []
+        estimators = []
 
         for s in tqdm(range(self.n_sigma)):
             for a in tqdm(range(self.n_alpha)):
@@ -303,7 +136,8 @@ class Simulation:
                 else:
                     sigma_simu = sigma_tab[s]
 
-                generalization, _ = run_one_simulation(horizon,
+                generalization, loss_tab, \
+                     accuracy_tab, estimator = run_one_simulation(horizon,
                                                        self.d,
                                                        eta,
                                                        sigma_simu,
@@ -313,11 +147,19 @@ class Simulation:
                                                        n_ergodic,
                                                        n_classes=self.n_classes)
                 gen_grid[s, a] = generalization
+
+                # For logging
+                losses.append(loss_tab)
+                accuracies.append(accuracy_tab)
+                estimators.append(estimator)
+
+                logger.info(f"train accuracy: {round(100. * accuracy_tab[-1][0], 2)} %")
         
         logger.info(f"{self.n_sigma * self.n_alpha} simulations completed successfully")
 
-        return gen_grid, sigma_tab, alpha_tab
-    
+        return gen_grid, sigma_tab, alpha_tab, losses, accuracies, data, estimators
+
+
     def all_linear_regression(self,
                                 gen_grid: np.ndarray,
                                 sigma_tab: np.ndarray,
@@ -338,7 +180,118 @@ class Simulation:
             correlation_reg[s] = Simulation.linear_regression(alpha_tab, gen_grid[s, :])
 
         return alpha_reg, correlation_reg
+    
 
+    def plot_performance(self,
+                         loss_tab,
+                         accuracy_tab,
+                         sigma_tab,
+                         alpha_tab,
+                         data,
+                         estimators,
+                         output_dir: str):
+        """
+        accuracy_tab[k] should be (train, validation)
+        """
+        
+        assert len(loss_tab) == len(accuracy_tab),\
+              (len(loss_tab), len(accuracy_tab))
+        assert len(loss_tab[0]) == len(accuracy_tab[0])
+        iterations = len(loss_tab[0])
+
+        if not Path(output_dir).is_dir():
+            Path(output_dir).mkdir()
+
+        output_dir = Path(output_dir) / f"results_d_{self.d}_{int(time.time())}"
+        if not output_dir.is_dir():
+            output_dir.mkdir()
+
+        json_path = (output_dir / "simulation").with_suffix(".json")
+        logger.info(f"Saving JSON file in {str(json_path)}")
+        with open(str(json_path), "w") as json_file:
+            json.dump(self.__dict__, json_file, indent = 2)
+
+        logger.info(f"Saving all figures in {str(output_dir)}") 
+        k = 0 # TODO: this is a hack, find a better solution
+        for s in tqdm(range(self.n_sigma)):
+            for a in tqdm(range(self.n_alpha)):
+
+                train_accs = [accuracy_tab[k][i][0] for i in range(iterations)]
+                val_accs = [accuracy_tab[k][i][1] for i in range(iterations)]
+
+                # evolution  of the training loss
+                plt.figure()
+                plt.plot(np.arange(iterations), loss_tab[k], label="Binary_cross_entropy_values")
+                fig_name = (f"loss_sigma_{sigma_tab[s]}_alpha_{alpha_tab[a]}").replace(".","_")
+                output_path = (output_dir / fig_name).with_suffix(".png")
+                plt.legend()
+                plt.savefig(str(output_path))
+                plt.close()      
+
+                # evolution of both accuracies
+                plt.figure()
+                plt.plot(np.arange(iterations), train_accs, label="Train accuracy")
+                plt.plot(np.arange(iterations), val_accs, label="Test accuracy")
+                fig_name = (f"accuracies_sigma_{sigma_tab[s]}_alpha_{alpha_tab[a]}").replace(".","_")
+                output_path = (output_dir / fig_name).with_suffix(".png")
+                plt.legend()
+                plt.savefig(str(output_path))
+                plt.close()
+
+                if self.d == 2:
+                    # predicted labels in the plane
+                    plt.figure()
+                    predictions_train = np.argmax(estimators[k][0], axis=1)
+                    predicted_0 = data[0][(predictions_train==0)]
+                    plt.scatter(predicted_0[:, 0], predicted_0[:, 1], label="predicted 0 train")
+                    predicted_1 = data[0][(predictions_train==1)]
+                    plt.scatter(predicted_1[:, 0], predicted_1[:, 1], label="predicted 1 train")
+                    fig_name = (f"predictions_sigma_{sigma_tab[s]}_alpha_{alpha_tab[a]}").replace(".","_")
+                    output_path = (output_dir / fig_name).with_suffix(".png")
+                    plt.legend()
+                    plt.savefig(str(output_path))
+                    plt.close()
+
+                    # ground truth in the plane
+                    plt.figure()
+                    ground_truth = data[1]
+                    predicted_0 = data[0][(ground_truth==0)]
+                    plt.scatter(predicted_0[:, 0], predicted_0[:, 1], label="predicted 0 train")
+                    predicted_1 = data[0][(ground_truth==1)]
+                    plt.scatter(predicted_1[:, 0], predicted_1[:, 1], label="predicted 1 train")
+                    fig_name = (f"ground_truth_sigma_{sigma_tab[s]}_alpha_{alpha_tab[a]}").replace(".","_")
+                    output_path = (output_dir / fig_name).with_suffix(".png")
+                    plt.legend()
+                    plt.savefig(str(output_path))
+                    plt.close()
+
+                    # same things for the validation set
+                    plt.figure()
+                    predictions_train = np.argmax(estimators[k][1], axis=1)
+                    predicted_0 = data[2][(predictions_train==0)]
+                    plt.scatter(predicted_0[:, 0], predicted_0[:, 1], label="predicted 0 train")
+                    predicted_1 = data[2][(predictions_train==1)]
+                    plt.scatter(predicted_1[:, 0], predicted_1[:, 1], label="predicted 1 train")
+                    fig_name = (f"predictions_val_sigma_{sigma_tab[s]}_alpha_{alpha_tab[a]}").replace(".","_")
+                    output_path = (output_dir / fig_name).with_suffix(".png")
+                    plt.legend()
+                    plt.savefig(str(output_path))
+                    plt.close()
+
+                    plt.figure()
+                    ground_truth_val = data[3]
+                    predicted_0 = data[2][(ground_truth_val==0)]
+                    plt.scatter(predicted_0[:, 0], predicted_0[:, 1], label="predicted 0 train")
+                    predicted_1 = data[2][(ground_truth_val==1)]
+                    plt.scatter(predicted_1[:, 0], predicted_1[:, 1], label="predicted 1 train")
+                    fig_name = (f"ground_truth_val_sigma_{sigma_tab[s]}_alpha_{alpha_tab[a]}").replace(".","_")
+                    output_path = (output_dir / fig_name).with_suffix(".png")
+                    plt.legend()
+                    plt.savefig(str(output_path))
+                    plt.close()
+
+                k += 1
+        
     
     def plot_results(self,
                       gen_grid: np.ndarray,
@@ -389,7 +342,6 @@ class Simulation:
             plt.close()
 
 
-
         # Finally: the linear regressions
         alpha_reg, correlation_reg = self.all_linear_regression(
             gen_grid,
@@ -419,17 +371,25 @@ class Simulation:
 
 
         
-def main(n=100, d = 10, n_val = 100, eta=0.01,\
-          horizon=1000, n_ergodic=100, n_sigma: int=10,
-          n_alpha: int = 10, init_std: float = 10.,
-          normalization: bool = False, sigma_min = 0.0001, sigma_max = 1):
+def main(n=1000,
+          d = 4, 
+          n_val = 1000,
+          eta=0.01,\
+          horizon=1000,
+          n_ergodic=100,
+          n_sigma: int=10,
+          n_alpha: int = 10, 
+          init_std: float = 1.,
+          normalization: bool = False,
+          sigma_min = 0.0001,        
+          sigma_max = 0.1):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\
                            w_init_std=init_std, n_val=n_val,
                              normalization=normalization, sigma_min=sigma_min,
                              sigma_max=sigma_max)
 
-    gen_grid, sigma_tab, alpha_tab = simulator.simulation(horizon,
+    gen_grid, sigma_tab, alpha_tab, *_ = simulator.simulation(horizon,
                                                           n_ergodic,
                                                           eta)
     
