@@ -15,10 +15,18 @@ def sample_standard_gaussian_mixture(dimension: int,
     
     # Generate means of the blobs
     if random_centers:
-        means = np.array([
-            means_std * np.random.normal(0., 1., size = dimension)\
-                  for _ in range(n_classes)
-        ])
+        if n_classes > 2:
+            means = np.array([
+                means_std * np.random.normal(0., 1., size = dimension)\
+                    for _ in range(n_classes)
+            ])
+        else:
+            mean_temp = np.random.normal(0., 1., size = dimension)
+            mean_temp = mean_temp / np.linalg.norm(mean_temp)
+            means = np.array([
+                0.5 * means_std * mean_temp,
+                -0.5 * means_std * mean_temp
+            ])
         means = torch.tensor(means)       
     else:
         assert means_deterministic is not None

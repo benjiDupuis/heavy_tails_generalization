@@ -42,11 +42,14 @@ class Simulation:
                  n_alpha: int = 10,
                  w_init_std: float = 0.1,
                  normalization: bool = False,
-                 seed: int = 42
+                 seed: int = None,
+                 momentum: float = 0.
                  ):
 
-        # np.random.seed(seed)
-        # torch.manual_seed(seed)
+        if seed is None:
+            seed = np.random.randint(10000)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
         self.seed: int = seed
         
         self.d: int = d
@@ -61,6 +64,7 @@ class Simulation:
         self.n_classes: int = n_classes
         self.n_val: int = n_val
         self.normalization: bool = normalization
+        self.momentum: float = momentum
 
     def __str__(self) -> str:
         return json.dumps(self.__dict__, indent=2)
@@ -150,7 +154,8 @@ class Simulation:
                                                        initialization,
                                                        data,
                                                        n_ergodic,
-                                                       n_classes=self.n_classes)
+                                                       n_classes=self.n_classes,
+                                                       momentum=self.momentum)
                 gen_grid[s, a] = generalization
 
                 # For logging
@@ -306,7 +311,8 @@ class Simulation:
                       gen_grid: np.ndarray,
                       sigma_tab: np.ndarray,
                       alpha_tab: np.ndarray,
-                      output_dir: str):
+                      output_dir: str,
+                      horizon: int):
         
         if not Path(output_dir).is_dir():
             Path(output_dir).mkdir()
@@ -318,7 +324,9 @@ class Simulation:
         json_path = (output_dir / "simulation").with_suffix(".json")
         logger.info(f"Saving JSON file in {str(json_path)}")
         with open(str(json_path), "w") as json_file:
-            json.dump(self.__dict__, json_file, indent = 2)
+            saved_dict = self.__dict__
+            saved_dict["horizon"] = horizon
+            json.dump(saved_dict, json_file, indent = 2)
 
         npy_path = (output_dir / "generalization").with_suffix(".npy")
         logger.info(f"Saving NPY file in {str(npy_path)}")
@@ -402,7 +410,7 @@ def main(n=1000,
                                                           n_ergodic,
                                                           eta)
     
-    simulator.plot_results(gen_grid, sigma_tab, alpha_tab, "figures")
+    simulator.plot_results(gen_grid, sigma_tab, alpha_tab, "figures", horizon)
 
 
 if __name__ == "__main__":

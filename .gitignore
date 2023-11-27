@@ -1,6 +1,9 @@
 **/*.env
 *.png
 
+*.err.*
+*.out.*
+
 heavy_tails/
 
 figures/

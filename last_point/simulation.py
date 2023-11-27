@@ -19,7 +19,8 @@ def run_one_simulation(horizon: int,
                         initialization: torch.Tensor,
                         data: Tuple[torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor],
                         n_ergodic: int = 100,
-                        n_classes: int = 2):
+                        n_classes: int = 2,
+                        momentum: float = 0.):
     """
     Data format should be (x_train, y_train, x_val, y_val)
     """
@@ -49,7 +50,8 @@ def run_one_simulation(horizon: int,
     model = LinearModel(d, n_classes = n_classes).to(device) 
     with torch.no_grad():
         model.initialization(initialization)
-    opt = torch.optim.SGD(model.parameters(), lr = eta)
+    opt = torch.optim.SGD(model.parameters(),
+                           lr = eta, momentum=momentum)
     crit = nn.CrossEntropyLoss().to(device)
 
     loss_tab = []
@@ -86,20 +88,20 @@ def run_one_simulation(horizon: int,
         opt.step()
 
         # Validation if we are after the time horizon
+        loss_val = None
         if k >= horizon:
             with torch.no_grad():
                 out_val = model(x_val)
-                loss_val = crit(out_val, y_val)
+                loss_val = crit(out_val, y_val).item()
 
         with torch.no_grad():
             # Logging
-            # Warning there is a hack there, TODO change it
-            loss_tab.append((loss.item(), loss.item()))
+            loss_tab.append((loss.item(), loss_val))
             accuracy_train = accuracy(out, y_train)
             accuracy_val = None
 
             if k >= horizon:
-                gen_tab.append(loss_val.item() - loss.item())
+                gen_tab.append(loss_val - loss.item())
                 accuracy_val = accuracy(out_val, y_val)
 
             accuracy_tab.append((accuracy_train, accuracy_val))
