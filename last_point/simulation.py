@@ -65,12 +65,6 @@ def run_one_simulation(horizon: int,
     # Loop
     for k in range(horizon + n_ergodic):
 
-        # Validation if we are after the time horizon
-        if k >= horizon:
-            with torch.no_grad():
-                out_val = model(x_val)
-                loss_val = crit(out_val, y_val)
-
         # evaluation of the empirical loss
         # keep in mind that this is a full batch experiment
         opt.zero_grad()
@@ -88,9 +82,18 @@ def run_one_simulation(horizon: int,
         # calculate the gradients
         loss.backward()
 
+        # Gradient step
+        opt.step()
+
+        # Validation if we are after the time horizon
+        if k >= horizon:
+            with torch.no_grad():
+                out_val = model(x_val)
+                loss_val = crit(out_val, y_val)
+
         with torch.no_grad():
             # Logging
-            loss_tab.append(loss.item())
+            loss_tab.append((loss.item(), loss_val.item()))
             accuracy_train = accuracy(out, y_train)
             accuracy_val = None
 
@@ -99,9 +102,6 @@ def run_one_simulation(horizon: int,
                 accuracy_val = accuracy(out_val, y_val)
 
             accuracy_tab.append((accuracy_train, accuracy_val))
-
-        # Gradient step
-        opt.step()
 
         # Adding the levy noise
         with torch.no_grad():

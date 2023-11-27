@@ -41,8 +41,13 @@ class Simulation:
                  alpha_max: float = 1.95,
                  n_alpha: int = 10,
                  w_init_std: float = 0.1,
-                 normalization: bool = False
+                 normalization: bool = False,
+                 seed: int = 42
                  ):
+
+        # np.random.seed(seed)
+        # torch.manual_seed(seed)
+        self.seed: int = seed
         
         self.d: int = d
         self.sigma_min: float = sigma_min
@@ -119,9 +124,9 @@ class Simulation:
         alpha_tab = np.linspace(self.alpha_min, self.alpha_max, self.n_alpha)
 
         # Generate initialization that will be shared among simulations
-        # initialization = self.w_init_std * \
-        #     torch.randn(size=(self.n_classes,self.d)).to(device)
-        initialization = means.float().to(device)
+        initialization_noise = self.w_init_std * \
+            torch.randn(size=(self.n_classes,self.d)).to(device)
+        initialization = means.float().to(device) + initialization_noise
 
         # Initialize some logging
         losses = []
@@ -219,9 +224,13 @@ class Simulation:
                 train_accs = [accuracy_tab[k][i][0] for i in range(iterations)]
                 val_accs = [accuracy_tab[k][i][1] for i in range(iterations)]
 
-                # evolution  of the training loss
+                train_losses = [loss_tab[k][i][0] for i in range(iterations)]
+                val_losses = [loss_tab[k][i][1] for i in range(iterations)]
+
+                # evolution  of the training and validation losses
                 plt.figure()
-                plt.plot(np.arange(iterations), loss_tab[k], label="Binary_cross_entropy_values")
+                plt.plot(np.arange(iterations), train_losses, label="Train BCE")
+                plt.plot(np.arange(iterations), val_losses, label="Validation BCE")
                 fig_name = (f"loss_sigma_{sigma_tab[s]}_alpha_{alpha_tab[a]}").replace(".","_")
                 output_path = (output_dir / fig_name).with_suffix(".png")
                 plt.legend()
@@ -372,16 +381,16 @@ class Simulation:
 
         
 def main(n=1000,
-          d = 4, 
+          d = 2, 
           n_val = 1000,
-          eta=0.01,\
-          horizon=1000,
+          eta=0.001,\
+          horizon=20000,
           n_ergodic=100,
           n_sigma: int=10,
           n_alpha: int = 10, 
           init_std: float = 1.,
           normalization: bool = False,
-          sigma_min = 0.0001,        
+          sigma_min = 0.001,        
           sigma_max = 0.1):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\

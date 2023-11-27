@@ -1,22 +1,19 @@
 import fire
 
-import matplotlib.pyplot as plt
-from loguru import logger
-
 from last_point.experiments import Simulation
 
 def main(n=1000,
           d = 2, 
           n_val = 1000,
           eta = 0.001,\
-          horizon = 1000,
-          n_ergodic = 100,
-          n_sigma: int = 5,
-          n_alpha: int = 5, 
+          horizon = 0,
+          n_ergodic = 10000,
+          n_sigma: int = 1,
+          n_alpha: int = 1, 
           init_std: float = 1.,
           normalization: bool = False,
-          sigma_min = 0.0001,        
-          sigma_max = 1.):
+          sigma_min = 0.01,        
+          sigma_max = 0.1):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\
                            w_init_std=init_std, n_val=n_val,
