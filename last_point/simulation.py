@@ -93,7 +93,8 @@ def run_one_simulation(horizon: int,
 
         with torch.no_grad():
             # Logging
-            loss_tab.append((loss.item(), loss_val.item()))
+            # Warning there is a hack there, TODO change it
+            loss_tab.append((loss.item(), loss.item()))
             accuracy_train = accuracy(out, y_train)
             accuracy_val = None
 
