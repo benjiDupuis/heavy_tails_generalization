@@ -111,6 +111,7 @@ class Simulation:
         logger.info(f"on device {str(device)}")
 
         gen_grid = np.zeros((self.n_sigma, self.n_alpha))
+        acc_gen_grid = np.zeros((self.n_sigma, self.n_alpha))
 
         # generate data
         n_per_class_train = self.n // self.n_classes
@@ -157,6 +158,8 @@ class Simulation:
                                                        n_classes=self.n_classes,
                                                        momentum=self.momentum)
                 gen_grid[s, a] = generalization
+                acc_gen_grid[s, a] = 100. * (accuracy_tab[-1][1] - accuracy_tab[-1][0])
+
 
                 # For logging
                 losses.append(loss_tab)
@@ -167,7 +170,7 @@ class Simulation:
         
         logger.info(f"{self.n_sigma * self.n_alpha} simulations completed successfully")
 
-        return gen_grid, sigma_tab, alpha_tab, losses, accuracies, data, estimators
+        return acc_gen_grid, sigma_tab, alpha_tab, losses, accuracies, data, estimators, gen_grid
 
 
     def all_linear_regression(self,
@@ -389,17 +392,18 @@ class Simulation:
 
         
 def main(n=1000,
-          d = 2, 
+          d = 10, 
           n_val = 1000,
           eta=0.001,\
           horizon=20000,
-          n_ergodic=100,
+          n_ergodic=1000,
           n_sigma: int=10,
           n_alpha: int = 10, 
           init_std: float = 1.,
           normalization: bool = False,
           sigma_min = 0.001,        
-          sigma_max = 0.1):
+          sigma_max = 0.1,
+          output_dir: str = "figures"):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\
                            w_init_std=init_std, n_val=n_val,
@@ -410,13 +414,13 @@ def main(n=1000,
                                                           n_ergodic,
                                                           eta)
     
-    simulator.plot_results(gen_grid, sigma_tab, alpha_tab, "figures", horizon)
+    simulator.plot_results(gen_grid, sigma_tab, alpha_tab, output_dir, horizon)
 
 
 if __name__ == "__main__":
     """
     Test command: 
-    PYTHONPATH=$PWD python last_point/experiments.py --n 10 --d 2 --n_val 10 --horizon 10 --n_sigma 3 --n_alpha 3
+    PYTHONPATH=$PWD python last_point/experiments.py --n 10 --d 2 --n_val 10 --horizon 10 --n_sigma 3 --n_alpha 3 --output_dir tests
     """
 
     fire.Fire(main)

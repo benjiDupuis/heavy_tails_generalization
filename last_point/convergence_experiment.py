@@ -14,12 +14,15 @@ def main(n=100,
           normalization: bool = False,
           sigma_min = 0.01,        
           sigma_max = 0.1,
-          momentum = 0.001):
+          momentum = 0.001,
+          alpha_min = 1.,
+          alpha_max = 2.):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\
                            w_init_std=init_std, n_val=n_val,
                              normalization=normalization, sigma_min=sigma_min,
-                             sigma_max=sigma_max, momentum=momentum)
+                             sigma_max=sigma_max, momentum=momentum,
+                             alpha_min=alpha_min, alpha_max=alpha_max)
 
     _, sigma_tab, alpha_tab, \
          loss_tab, accuracies, data, \
