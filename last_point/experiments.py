@@ -43,7 +43,9 @@ class Simulation:
                  w_init_std: float = 0.1,
                  normalization: bool = False,
                  seed: int = None,
-                 momentum: float = 0.
+                 momentum: float = 0.,
+                 depth: int = 1,
+                 width: int = 50
                  ):
 
         if seed is None:
@@ -65,6 +67,8 @@ class Simulation:
         self.n_val: int = n_val
         self.normalization: bool = normalization
         self.momentum: float = momentum
+        self.depth: int = depth
+        self.width: int = width
 
     def __str__(self) -> str:
         return json.dumps(self.__dict__, indent=2)
@@ -156,7 +160,9 @@ class Simulation:
                                                        data,
                                                        n_ergodic,
                                                        n_classes=self.n_classes,
-                                                       momentum=self.momentum)
+                                                       momentum=self.momentum,
+                                                       width=self.width,
+                                                       depth=self.depth)
                 gen_grid[s, a] = generalization
                 acc_gen_grid[s, a] = 100. * (accuracy_tab[-1][1] - accuracy_tab[-1][0])
 
@@ -403,12 +409,15 @@ def main(n=1000,
           normalization: bool = False,
           sigma_min = 0.001,        
           sigma_max = 0.1,
-          output_dir: str = "figures"):
+          output_dir: str = "figures",
+          depth: int = 1,
+          width: int = 50):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\
                            w_init_std=init_std, n_val=n_val,
                              normalization=normalization, sigma_min=sigma_min,
-                             sigma_max=sigma_max)
+                             sigma_max=sigma_max, depth=depth,
+                             width=width)
 
     gen_grid, sigma_tab, alpha_tab, *_ = simulator.simulation(horizon,
                                                           n_ergodic,
@@ -420,7 +429,7 @@ def main(n=1000,
 if __name__ == "__main__":
     """
     Test command: 
-    PYTHONPATH=$PWD python last_point/experiments.py --n 10 --d 2 --n_val 10 --horizon 10 --n_sigma 3 --n_alpha 3 --output_dir tests
+    PYTHONPATH=$PWD python -m pdb last_point/experiments.py --n 10 --d 2 --n_val 10 --horizon 10 --n_sigma 3 --n_alpha 3 --output_dir tests --depth 1 --width 2
     """
 
     fire.Fire(main)
