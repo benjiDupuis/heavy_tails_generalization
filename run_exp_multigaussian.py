@@ -13,9 +13,9 @@ def main(args_):
 
     ''' generate experiment hash and set up redirect of output streams '''
     exp_hash = hash_dict(args_.__dict__)
-    if args_.exp_result_folder is not None:
-        os.makedirs(args_.exp_result_folder, exist_ok=True)
-        log_file_path = os.path.join(args_.exp_result_folder, '%s.log ' % exp_hash)
+    if args_.result_dir is not None:
+        os.makedirs(args_.result_dir, exist_ok=True)
+        log_file_path = os.path.join(args_.result_dir, '%s.log ' % exp_hash)
         logger = Logger(log_file_path)
         sys.stdout = logger
         sys.stderr = logger
@@ -79,12 +79,6 @@ if __name__ == '__main__':
     parser.add_argument('--normalization', type=bool, default=False)
     parser.add_argument('--id_sigma', type=int, default=0)
     parser.add_argument('--id_alpha', type=int, default=0)
-
-
-
-
-    
-
     
 
     args = parser.parse_args()
