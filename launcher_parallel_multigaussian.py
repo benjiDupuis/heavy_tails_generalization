@@ -46,9 +46,6 @@ def main(args_):
     init_seeds = list(rds.randint(0, 10 ** 6, size=(args_.num_seeds_per_hparam,)))
 
     # determine name of experiment
-    exp_base_path = os.path.join(RESULT_DIR, args_.exp_name)
-    exp_path = os.path.join(exp_base_path, f'{args_.experiment}_{args_.method}')
-
     if not Path(RESULT_DIR).is_dir():
         Path(RESULT_DIR).mkdir(parents=True, exist_ok=True)
     
