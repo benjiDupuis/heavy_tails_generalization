@@ -62,7 +62,7 @@ def main(args_):
             # transfer flags from the args
             flags = copy.deepcopy(args.__dict__)
             [flags.pop(key) for key in
-            ['exp_name', 'num_cpus', 'num_gpus',\
+            ['num_cpus', 'num_gpus',\
             'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
             'num_seeds_per_hparam']]
 
