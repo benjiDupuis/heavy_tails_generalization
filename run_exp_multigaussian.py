@@ -55,8 +55,8 @@ if __name__ == '__main__':
 
     # general args
     parser.add_argument('--mode', type=str, default="slurm")
-    parser.add_argument('--long', type=int, default=0)
-    parser.add_argument('--env', type=int, default=0)
+    # parser.add_argument('--long', type=int, default=0)
+    # parser.add_argument('--env', type=int, default=0)
 
     parser.add_argument('--result_dir', type=str, default=None)
 

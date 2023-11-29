@@ -13,3 +13,5 @@ __pychache__/
 *.pyc
 
 tests/
+
+results_parallel/

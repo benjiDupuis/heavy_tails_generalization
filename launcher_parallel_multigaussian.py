@@ -93,7 +93,7 @@ def main(args_):
                 if not run_results_folder.is_dir():
                     run_results_folder.mkdir(parents=True, exist_ok=True)
 
-                flags['exp_result_folder'] = str(run_results_folder)
+                flags['result_dir'] = str(run_results_folder)
 
                 cmd = generate_base_command(run_exp_multigaussian,
                                              flags=dict(**flags))
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--date', type=str, default=str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0])
     parser.add_argument('--mode', type=str, default="euler_slurm")
-    parser.add_argument('--long', type=int, default=0)
+    # parser.add_argument('--long', type=int, default=0)
 
     parser.add_argument('--num_cpus', type=int, default=10)
     parser.add_argument('--num_gpus', type=int, default=0)
