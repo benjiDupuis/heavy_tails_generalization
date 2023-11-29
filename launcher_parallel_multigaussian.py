@@ -23,13 +23,11 @@ applicable_configs = {}
 default_configs = {}
 search_ranges = {}
 
-
-
-Path(RESULT_DIR).mkdir(parents=True, exist_ok=True)
                        
 
+# TODO: is this useful?
 # check consistency of configuration dicts
-assert set(itertools.chain(*list(applicable_configs.values()))) == {*default_configs.keys(), *search_ranges.keys()}
+# assert set(itertools.chain(*list(applicable_configs.values()))) == {*default_configs.keys(), *search_ranges.keys()}
 
 
 def main(args_):
@@ -65,7 +63,7 @@ def main(args_):
             [flags.pop(key) for key in
             ['num_cpus', 'num_gpus',\
             'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
-            'num_seeds_per_hparam']]
+            'num_seeds_per_hparam', 'grid_size', 'seed']]
 
             # randomly sample flags
             for flag in default_configs:
@@ -123,14 +121,13 @@ def main(args_):
             json.dump(final_results, output_file, indent=2)
 
 
+"""
+Test Commmand
+PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10
+"""
 
 
 if __name__ == '__main__':
-
-    """
-    Test Commmand
-    PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --normalization true --horizon 10
-    """
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--date', type=str, default=str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0])
