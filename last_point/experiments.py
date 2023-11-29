@@ -80,7 +80,10 @@ class Simulation:
         alpha_factor = 2. * alpha * np.power(2., alpha - 1) / ((2. - alpha) * gamma(1. - alpha/2.))
         alpha_dim_factor = gamma((d + alpha) / 2.) / (d * gamma(d / 2.))
 
-        return np.power(alpha_factor * alpha_dim_factor, 1. / alpha)
+        norm_factor = np.power(alpha_factor * alpha_dim_factor, 1. / alpha)
+        logger.info(f"Normalization factor: {norm_factor}")
+
+        return norm_factor
 
     @staticmethod
     def linear_regression(x_tab: np.ndarray, 

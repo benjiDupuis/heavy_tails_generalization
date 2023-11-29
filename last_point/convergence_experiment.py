@@ -3,7 +3,7 @@ import fire
 from last_point.experiments import Simulation
 
 def main(n=1000,
-          d = 10, 
+          d = 2, 
           n_val = 1000,
           eta = 0.001,\
           horizon = 0,
