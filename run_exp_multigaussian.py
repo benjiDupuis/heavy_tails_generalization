@@ -14,7 +14,8 @@ import wandb
 from loguru import logger
 from pydantic import BaseModel
 
-from PHDim.train_risk_analysis import main as risk_analysis
+from last_point.simulation import run_and_save_one_simulation
+
 
 def main(args_):
     """"""
@@ -38,51 +39,56 @@ def main(args_):
 
     """"""""""""""""""""""""""""""""""" Hyperparameter selection """""""""""""""""""""""""""""""""""""""""""""""
 
-    _ = risk_analysis(eval_freq = 10000,
-                    lr = args_.lr,
-                    iterations = 100000000,
-                    width = args_.width,
-                    depth = args_.depth,
-                    batch_size_train = args_.batch_size,
-                    batch_size_eval=5000,
-                    ripser_points = 5000,
-                    jump = 20,
-                    min_points = 1000,
-                    dataset = "mnist",
-                    data_path="~/data",
-                    model = "fc",
-                    stopping_criterion = 0.005,
-                    data_proportion=1.,
-                    exp_result_folder = args_.exp_result_folder,
-                    seed=args_.seed,
-                    metric=args_.metric,
-                    subset=args_.subset)
+
+    run_and_save_one_simulation(args_.result_dir,
+                                args_.horizon,
+                                args_.d,
+                                args_.eta,
+                                args_.sigma,
+                                args_.alpha,
+                                args_.n,
+                                args_.n_val,
+                                args_.n_ergodic,
+                                args_.n_classes,
+                                args_.momentum,
+                                args_.depth,
+                                args_.width,
+                                args_.data_seed,
+                                args_.model_seed)
 
 
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Approximating SGD')
+    parser = argparse.ArgumentParser(description='Heavy-tailed simulations')
 
     # general args
-    parser.add_argument('--experiment', type=str, default='heavy_tails')
-    parser.add_argument('--method', type=str, default='approximation')
     parser.add_argument('--mode', type=str, default="slurm")
     parser.add_argument('--long', type=int, default=0)
     parser.add_argument('--env', type=int, default=0)
 
-    parser.add_argument('--exp_result_folder', type=str, default=None)
-    parser.add_argument('--seed', type=int, default=834, help='random number generator seed')
+    parser.add_argument('--result_dir', type=str, default=None)
 
-    # method related args
-    parser.add_argument('--dim', type=int, default=50)
-    parser.add_argument('--batch_size', type=int, default=1)
-    parser.add_argument('--lr', type=float, default=1e-1)
-    parser.add_argument('--width', type=int, default=100)
-    parser.add_argument('--depth', type=int, default=5)
-    parser.add_argument('--subset', type=float, default=1.)
-    parser.add_argument('--metric', type=str, default="manhattan")
+    # run related args
+    # It is: global parameters + (sigma, alpha)
+    parser.add_argument('--horizon', type=int, default=10000)
+    parser.add_argument('--d', type=int, default=10)
+    parser.add_argument('--eta', type=float, default=0.001)
+    parser.add_argument('--sigma', type=float, default=0.1)
+    parser.add_argument('--alpha', type=float, default=1.5)
+    parser.add_argument('--n', type=int, default=1000)
+    parser.add_argument('--n_val', type=int, default=1000)
+    parser.add_argument('--n_ergodic', type=int, default=5000)
+    parser.add_argument('--n_classes', type=int, default=2)
+    parser.add_argument('--momentum', type=float, default=0.)
+    parser.add_argument('--depth', type=int, default=2)
+    parser.add_argument('--width', type=int, default=50)
+    parser.add_argument('--data_seed', type=int, default=1)
+    parser.add_argument('--model_seed', type=int, default=42)
 
+
+
+    
 
     
 

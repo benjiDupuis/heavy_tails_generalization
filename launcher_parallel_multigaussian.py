@@ -1,8 +1,9 @@
+import datetime
 import json
 
 from experiment_utils import generate_base_command, generate_run_commands, hash_dict, sample_flag, RESULT_DIR
 
-import run_example_exp_mnist
+import run_exp_multigaussian
 import argparse
 import numpy as np
 import copy
@@ -10,119 +11,150 @@ import os
 import itertools
 from pathlib import Path
 
+# TODO: clean all those parallel computations files 
+
 # os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 # os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
 
-applicable_configs = {
-    'param_estim': ['dim'],
-}
 
-default_configs = {
-    'dim': 100,
-}
+# TODO: I am not sure if we need those in that case
+applicable_configs = {}
+default_configs = {}
+search_ranges = {}
 
-search_ranges = {
-    'dim': ['choice', [100]],
-}
-                       
-lr_min = 0.005
-lr_max = 0.1
-bs_min = 32
-bs_max = 256
+
 
 Path(RESULT_DIR).mkdir(parents=True, exist_ok=True)
                        
-lrs = list(np.exp(np.linspace(np.log(lr_min), np.log(lr_max), 6)))
-bs = list(np.linspace(bs_min, bs_max, 6, dtype=np.int64))
 
 # check consistency of configuration dicts
 assert set(itertools.chain(*list(applicable_configs.values()))) == {*default_configs.keys(), *search_ranges.keys()}
 
 
 def main(args_):
+    
+    sigmas = list(np.exp(np.linspace(np.log(args_.sigma_min), \
+                                     np.log(args_.sigma_max), \
+                                     args_.grid_size)))
+    alphas = list(np.linspace(args_.alpha_min, \
+                              args_.alpha_max, \
+                              args_.grid_size)) 
+    
     mode = args_.mode
     rds = np.random.RandomState(args_.seed)
     assert args_.num_seeds_per_hparam < 100
-    init_seeds = list(rds.randint(0, 10 ** 6, size=(100,)))
+    init_seeds = list(rds.randint(0, 10 ** 6, size=(args_.num_seeds_per_hparam,)))
 
     # determine name of experiment
     exp_base_path = os.path.join(RESULT_DIR, args_.exp_name)
     exp_path = os.path.join(exp_base_path, f'{args_.experiment}_{args_.method}')
 
+    if not Path(RESULT_DIR).is_dir():
+        Path(RESULT_DIR).mkdir(parents=True, exist_ok=True)
+    
+    exp_path = Path(RESULT_DIR) / args_.date
+    if not exp_path.is_dir():
+        exp_path.mkdir(parents=True, exist_ok=True)
+
     command_list = []
     exp_num = 0
-    for (lr, b) in itertools.product(lrs, bs):
-        # transfer flags from the args
-        flags = copy.deepcopy(args.__dict__)
-        [flags.pop(key) for key in
-         ['seed', 'num_hparam_samples', 'num_seeds_per_hparam', 'exp_name', 'num_cpus', 'num_gpus']]
 
-        # randomly sample flags
-        for flag in default_configs:
-            if flag in search_ranges:
-                flags[flag] = sample_flag(sample_spec=search_ranges[flag], rds=rds)
-            else:
-                flags[flag] = default_configs[flag]
+    for s in range(len(sigmas)):
+        for a in range(len(alphas)):
 
-        flags['lr'] = lr
-        flags['b'] = b
+            # transfer flags from the args
+            flags = copy.deepcopy(args.__dict__)
+            [flags.pop(key) for key in
+            ['exp_name', 'num_cpus', 'num_gpus',\
+            'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
+            'num_seeds_per_hparam']]
 
-        # determine subdir which holds the repetitions of the exp
-        flags_hash = str(exp_num)
+            # randomly sample flags
+            for flag in default_configs:
+                if flag in search_ranges:
+                    flags[flag] = sample_flag(sample_spec=search_ranges[flag], rds=rds)
+                else:
+                    flags[flag] = default_configs[flag]
 
-        for j in range(args.num_seeds_per_hparam):
+            flags['sigma'] = sigmas[s]
+            flags['alpha'] = alphas[a]
+            flags['id_sigma'] = s
+            flags['id_alpha'] = a
 
-            seed = init_seeds[j]
-            flags['exp_result_folder'] = os.path.join(exp_path, str(seed), flags_hash)
+            for j in range(args.num_seeds_per_hparam):
 
-            cmd = generate_base_command(run_example_exp_mnist, flags=dict(**flags, **{'seed': seed}))
-            command_list.append(cmd)
-            exp_num+=1
+                seed = init_seeds[j]
 
-    # submit jobs
-    generate_run_commands(command_list, num_gpus=args.num_gpus, num_cpus=args.num_cpus, mode=mode, promt=False)
+                run_results_folder = exp_path / str(seed)
+                if not run_results_folder.is_dir():
+                    run_results_folder.mkdir(parents=True, exist_ok=True)
 
-    # Create the resulting json file
-    exp_path = Path(exp_path)
-    final_results = {}
+                flags['exp_result_folder'] = str(run_results_folder)
 
-    json_list = [p for p in exp_path.rglob("*.json") if str(p).startswith("result")]
-    n = 0
-    for p in json_list:
-        with open(str(p), "r") as json_file:
-            res = json.load(json_file)
-            final_results.update({str(n): res})
-        n += 1
-    
-    output_path = exp_path / f"results_final_{n}.json"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+                cmd = generate_base_command(run_exp_multigaussian,
+                                             flags=dict(**flags, **{'seed': seed}))
+                command_list.append(cmd)
+                exp_num+=1
 
-    with open(str(output_path), "w") as output_file:
-        json.dump(final_results, output_file, indent=2)
+        # submit jobs
+        generate_run_commands(command_list, num_gpus=args.num_gpus, num_cpus=args.num_cpus, mode=mode, promt=False)
+
+        # Create the resulting json file
+        final_results = {}
+
+        json_list = [p for p in exp_path.rglob("**.json") if p.stem.startswith("result")]
+        n = 0
+        for p in json_list:
+            with open(str(p), "r") as json_file:
+                res = json.load(json_file)
+                final_results.update({str(n): res})
+            n += 1
+        
+        output_path = exp_path / f"results_final_{n}.json"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(str(output_path), "w") as output_file:
+            json.dump(final_results, output_file, indent=2)
 
 
 
 
 if __name__ == '__main__':
-    import datetime
+
+    """
+    Test Commmand
+    PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 1 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --normalization true --horizon 10
+    """
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('--experiment', type=str, default='ph_chd')
-    parser.add_argument('--method', type=str, default=str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0])
+    parser.add_argument('--date', type=str, default=str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0])
     parser.add_argument('--mode', type=str, default="euler_slurm")
     parser.add_argument('--long', type=int, default=0)
 
-    parser.add_argument('--seed', type=int, default=2, help='random number generator seed')
-    parser.add_argument('--exp_name', type=str, required=True, default=None)
-    parser.add_argument('--num_cpus', type=int, default=2, help='number of cpus to use')
-    parser.add_argument('--num_gpus', type=int, default=0, help='number of gpus to use')
+    parser.add_argument('--num_cpus', type=int, default=10)
+    parser.add_argument('--num_gpus', type=int, default=0)
 
-    parser.add_argument('--num_hparam_samples', type=int, default=1)
+    # Parameters which are launcher specific
+    parser.add_argument('--sigma_min', type=float, default=0.001)
+    parser.add_argument('--sigma_max', type=float, default=0.1)
+    parser.add_argument('--alpha_min', type=float, default=1.2)
+    parser.add_argument('--alpha_max', type=float, default=2.)
+    parser.add_argument('--grid_size', type=int, default=7)
+    parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--num_seeds_per_hparam', type=int, default=1)
 
-    parser.add_argument('--width', type=int, default=100)
-    parser.add_argument('--depth', type=int, default=5)
-    parser.add_argument('--subset', type=float, default=1.)
-    parser.add_argument('--metric', type=str, default="manhattan")
+    # Parameters that are shared among all runs
+    parser.add_argument('--horizon', type=int, default=10000)
+    parser.add_argument('--d', type=int, default=10)
+    parser.add_argument('--eta', type=float, default=0.001)
+    parser.add_argument('--n', type=int, default=1000)
+    parser.add_argument('--n_val', type=int, default=1000)
+    parser.add_argument('--n_ergodic', type=int, default=5000)
+    parser.add_argument('--n_classes', type=int, default=2)
+    parser.add_argument('--momentum', type=float, default=0.)
+    parser.add_argument('--depth', type=int, default=2)
+    parser.add_argument('--width', type=int, default=50)
+    parser.add_argument('--normalization', type=bool, default=False)
 
     args = parser.parse_args()
     main(args)
