@@ -105,7 +105,7 @@ def main(args_):
         # Create the resulting json file
         final_results = {}
 
-        json_list = [p for p in exp_path.rglob("**.json") if p.stem.startswith("result")]
+        json_list = [p for p in exp_path.rglob("*.json") if p.stem.startswith("result")]
         n = 0
         for p in json_list:
             with open(str(p), "r") as json_file:
