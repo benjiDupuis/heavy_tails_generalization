@@ -77,10 +77,10 @@ class Simulation:
     @staticmethod
     def stable_normalization(alpha: float, d: float) -> float:
 
-        alpha_factor = 2. * alpha * np.power(2., alpha - 1) / ((2. - alpha) * gamma(1. - alpha/2.))
-        alpha_dim_factor = gamma((d + alpha) / 2.) / (d * gamma(d / 2.))
+        alpha_factor = np.power((2. - alpha) / (alpha * gamma(1. - alpha/2.)), 1./alpha)
+        dimension_factor = np.power(d, 0.5 - 1./alpha)
 
-        norm_factor = np.power(alpha_factor * alpha_dim_factor, 1. / alpha)
+        norm_factor = alpha_factor / (np.sqrt(2.) * dimension_factor)
         logger.info(f"Normalization factor: {norm_factor}")
 
         return norm_factor
