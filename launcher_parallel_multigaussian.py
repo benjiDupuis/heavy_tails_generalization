@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
     """
     Test Commmand
-    PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 1 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --normalization true --horizon 10
+    PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --normalization true --horizon 10
     """
 
     parser = argparse.ArgumentParser()

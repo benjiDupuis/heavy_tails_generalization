@@ -3,16 +3,7 @@ import sys
 import argparse
 from util import Logger, hash_dict
 import logging
-import datetime
-import json
 import os
-from pathlib import Path
-
-import fire
-import numpy as np
-import wandb
-from loguru import logger
-from pydantic import BaseModel
 
 from last_point.simulation import run_and_save_one_simulation
 
