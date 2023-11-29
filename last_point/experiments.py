@@ -433,7 +433,7 @@ def main(n=1000,
 if __name__ == "__main__":
     """
     Test command: 
-    PYTHONPATH=$PWD python -m pdb last_point/experiments.py --n 10 --d 2 --n_val 10 --horizon 10 --n_sigma 3 --n_alpha 3 --output_dir tests --depth 1 --width 2
+    PYTHONPATH=$PWD python -m pdb last_point/experiments.py --n 10 --d 2 --n_val 10 --horizon 10 --n_sigma 2 --n_alpha 2 --output_dir tests --depth 1 --width 2
     """
 
     fire.Fire(main)
