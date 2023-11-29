@@ -63,7 +63,8 @@ def main(args_):
             [flags.pop(key) for key in
             ['num_cpus', 'num_gpus',\
             'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
-            'num_seeds_per_hparam', 'grid_size', 'seed']]
+            'num_seeds_per_hparam', 'grid_size', 'seed',
+            'date']]
 
             # randomly sample flags
             for flag in default_configs:
