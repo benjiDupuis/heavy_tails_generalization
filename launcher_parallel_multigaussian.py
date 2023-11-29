@@ -80,16 +80,22 @@ def main(args_):
 
             for j in range(args.num_seeds_per_hparam):
 
-                seed = init_seeds[j]
+                np.random.seed(init_seeds[j])
 
-                run_results_folder = exp_path / str(seed)
+                data_seed = np.random.randint(1000)
+                model_seed = np.random.randint(1000)
+
+                flags['data_seed'] = data_seed
+                flags['model_seed'] = model_seed
+
+                run_results_folder = exp_path / str(init_seeds[j])
                 if not run_results_folder.is_dir():
                     run_results_folder.mkdir(parents=True, exist_ok=True)
 
                 flags['exp_result_folder'] = str(run_results_folder)
 
                 cmd = generate_base_command(run_exp_multigaussian,
-                                             flags=dict(**flags, **{'seed': seed}))
+                                             flags=dict(**flags))
                 command_list.append(cmd)
                 exp_num+=1
 
