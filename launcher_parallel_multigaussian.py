@@ -10,6 +10,7 @@ import copy
 import os
 import itertools
 from pathlib import Path
+from loguru import logger
 
 # TODO: clean all those parallel computations files 
 
@@ -115,6 +116,8 @@ def main(args_):
         
         output_path = exp_path / f"results_final_{n}.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        logger.info(f"Collecting the results of {len(json_list)} experiments in {str(output_path)}")
 
         with open(str(output_path), "w") as output_file:
             json.dump(final_results, output_file, indent=2)
