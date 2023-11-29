@@ -11,6 +11,7 @@ from scipy.special import gamma
 from tqdm import tqdm
 
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
+from last_point.model import fcnn
 from last_point.simulation import run_one_simulation
 
 """
@@ -142,11 +143,15 @@ class Simulation:
         accuracies = []
         estimators = []
 
+        # TODO: remove this hack
+        model_temp = fcnn(self.d, self.width, self.depth, False, self.n_classes)
+        n_params = model_temp.params_number()
+
         for s in tqdm(range(self.n_sigma)):
             for a in tqdm(range(self.n_alpha)):
 
                 if self.normalization:
-                    sigma_simu = Simulation.stable_normalization(alpha_tab[a], self.d) * sigma_tab[s]
+                    sigma_simu = Simulation.stable_normalization(alpha_tab[a], n_params) * sigma_tab[s]
                 else:
                     sigma_simu = sigma_tab[s]
 
@@ -164,8 +169,7 @@ class Simulation:
                                                        width=self.width,
                                                        depth=self.depth)
                 gen_grid[s, a] = generalization
-                acc_gen_grid[s, a] = 100. * (accuracy_tab[-1][1] - accuracy_tab[-1][0])
-
+                acc_gen_grid[s, a] = 100. * (accuracy_tab[-1][0] - accuracy_tab[-1][1])
 
                 # For logging
                 losses.append(loss_tab)
@@ -176,7 +180,7 @@ class Simulation:
         
         logger.info(f"{self.n_sigma * self.n_alpha} simulations completed successfully")
 
-        return acc_gen_grid, sigma_tab, alpha_tab, losses, accuracies, data, estimators, gen_grid
+        return gen_grid, sigma_tab, alpha_tab, losses, accuracies, data, estimators, acc_gen_grid
 
 
     def all_linear_regression(self,
@@ -401,16 +405,16 @@ def main(n=1000,
           d = 10, 
           n_val = 1000,
           eta=0.001,\
-          horizon=20000,
-          n_ergodic=1000,
-          n_sigma: int=10,
-          n_alpha: int = 10, 
+          horizon=30000,
+          n_ergodic=5000,
+          n_sigma: int = 7,
+          n_alpha: int = 7, 
           init_std: float = 1.,
-          normalization: bool = False,
-          sigma_min = 0.001,        
-          sigma_max = 0.1,
+          normalization: bool = True,
+          sigma_min = 0.01,        
+          sigma_max = 10.,
           output_dir: str = "figures",
-          depth: int = 1,
+          depth: int = 2,
           width: int = 50):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\

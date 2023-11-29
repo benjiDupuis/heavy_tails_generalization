@@ -123,9 +123,9 @@ def run_one_simulation(horizon: int,
         with torch.no_grad():
             model.add_noise(torch.from_numpy(noise[k]).to(device))
 
-        if k == 0:
-            logger.debug(f"Initial train accuracy: {accuracy_train}")
-            logger.debug(f"Initial test accuracy: {accuracy_train}")
+        # if k == 0:
+        #     logger.debug(f"Initial train accuracy: {accuracy_train}")
+        #     logger.debug(f"Initial test accuracy: {accuracy_train}")
 
     # Compute the estimated generalization at the end
     gen_tab = np.array(gen_tab)
