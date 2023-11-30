@@ -13,12 +13,13 @@ def main(args_):
 
     ''' generate experiment hash and set up redirect of output streams '''
     exp_hash = hash_dict(args_.__dict__)
-    if args_.result_dir is not None:
-        os.makedirs(args_.result_dir, exist_ok=True)
-        log_file_path = os.path.join(args_.result_dir, '%s.log ' % exp_hash)
-        logger = Logger(log_file_path)
-        sys.stdout = logger
-        sys.stderr = logger
+    # TODO: I removed logs saving, do we need it?
+    # if args_.result_dir is not None:
+    #     os.makedirs(args_.result_dir, exist_ok=True)
+    #     log_file_path = os.path.join(args_.result_dir, '%s.log ' % exp_hash)
+    #     logger = Logger(log_file_path)
+    #     sys.stdout = logger
+    #     sys.stderr = logger
 
     logger = logging.getLogger("root")
 

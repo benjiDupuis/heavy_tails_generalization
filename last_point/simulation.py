@@ -103,9 +103,6 @@ def run_one_simulation(horizon: int,
         # calculate the gradients
         loss.backward()
 
-        # Gradient step
-        opt.step()
-
         # Validation if we are after the time horizon
         loss_val = None
         if k >= horizon:
@@ -132,6 +129,9 @@ def run_one_simulation(horizon: int,
         if k == 0:
             logger.debug(f"Initial train accuracy: {accuracy_train}")
             logger.debug(f"Initial test accuracy: {accuracy_train}")
+
+        # Gradient step, put there to ensure initial acc are not corrupted
+        opt.step()
 
     # Compute the estimated generalization at the end
     gen_tab = np.array(gen_tab)
