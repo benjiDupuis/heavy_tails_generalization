@@ -12,7 +12,14 @@ class NoisyGDModel(nn.Module):
         total = 0
         for param in self.parameters():
             total += param.numel()
-        return total           
+        return total  
+
+    @torch.no_grad()
+    def gradient_l2_squared_norm(self) -> float:
+        total_norm = 0.
+        for param in self.parameters():
+            total_norm += param.grad.data.norm(2).item()**2
+        return float(total_norm)   
     
     @torch.no_grad()
     def add_noise(self, w: torch.Tensor):

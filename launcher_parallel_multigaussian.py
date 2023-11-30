@@ -143,7 +143,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_val', type=int, default=1000)
     parser.add_argument('--n_ergodic', type=int, default=5000)
     parser.add_argument('--n_classes', type=int, default=2)
-    parser.add_argument('--momentum', type=float, default=0.)
+    parser.add_argument('--decay', type=float, default=0.)
     parser.add_argument('--depth', type=int, default=2)
     parser.add_argument('--width', type=int, default=50)
     parser.add_argument('--normalization', type=bool, default=False)

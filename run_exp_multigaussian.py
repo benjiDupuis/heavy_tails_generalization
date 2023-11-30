@@ -42,7 +42,7 @@ def main(args_):
                                 args_.n_val,
                                 args_.n_ergodic,
                                 args_.n_classes,
-                                args_.momentum,
+                                args_.decay,
                                 args_.depth,
                                 args_.width,
                                 args_.data_seed,
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_val', type=int, default=1000)
     parser.add_argument('--n_ergodic', type=int, default=5000)
     parser.add_argument('--n_classes', type=int, default=2)
-    parser.add_argument('--momentum', type=float, default=0.)
+    parser.add_argument('--decay', type=float, default=0.)
     parser.add_argument('--depth', type=int, default=2)
     parser.add_argument('--width', type=int, default=50)
     parser.add_argument('--data_seed', type=int, default=1)

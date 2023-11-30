@@ -25,10 +25,11 @@ def run_one_simulation(horizon: int,
                         data: Tuple[torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor],
                         n_ergodic: int = 100,
                         n_classes: int = 2,
-                        momentum: float = 0.,
+                        decay: float = 0.,
                         depth: int = 0,
                         width: int = 50,
-                        seed: int = 42):
+                        seed: int = 42,
+                        compute_gradients: bool = False):
     """
     Data format should be (x_train, y_train, x_val, y_val)
     """
@@ -61,12 +62,13 @@ def run_one_simulation(horizon: int,
     
     opt = torch.optim.SGD(model.parameters(),
                            lr = eta,
-                           momentum = momentum)
+                           weight_decay = decay)
     crit = nn.CrossEntropyLoss().to(device)
 
     loss_tab = []
     gen_tab = []
     accuracy_tab = []
+    gradient_norm_list = []
 
     # Generate all noise
     n_params = model.params_number()
@@ -123,6 +125,9 @@ def run_one_simulation(horizon: int,
         # Gradient step, put there to ensure initial acc are not corrupted
         opt.step()
 
+        if compute_gradients and k >= horizon:
+            gradient_norm_list.append(model.gradient_l2_squared_norm())
+
         # Adding the levy noise
         with torch.no_grad():
             model.add_noise(torch.from_numpy(noise[k]).to(device))
@@ -130,9 +135,10 @@ def run_one_simulation(horizon: int,
     # Compute the estimated generalization at the end
     gen_tab = np.array(gen_tab)
     generalization = gen_tab.mean()
+    gradient_mean = np.array(gradient_norm_list).mean()
 
     return float(generalization), loss_tab, accuracy_tab,\
-          (out.detach().cpu().numpy(), out_val.detach().cpu().numpy())
+          (out.detach().cpu().numpy(), out_val.detach().cpu().numpy()), gradient_mean
 
 
 def stable_normalization(alpha: float, d: float) -> float:
@@ -141,7 +147,6 @@ def stable_normalization(alpha: float, d: float) -> float:
         dimension_factor = np.power(d, 0.5 - 1./alpha)
 
         norm_factor = alpha_factor / (np.sqrt(2.) * dimension_factor)
-        logger.info(f"Normalization factor: {norm_factor}")
 
         return norm_factor
 
@@ -155,7 +160,7 @@ def run_and_save_one_simulation(result_dir: str,
                         n_val: int = 1000,
                         n_ergodic: int = 100,
                         n_classes: int = 2,
-                        momentum: float = 0.,
+                        decay: float = 0.,
                         depth: int = 0,
                         width: int = 50,
                         data_seed: int = 1,
@@ -189,13 +194,15 @@ def run_and_save_one_simulation(result_dir: str,
     n_params = model_temp.params_number()
 
     # Normalization, if necessary
+    normalization_factor = stable_normalization(alpha, n_params)
     if normalization:
-        sigma_simu = stable_normalization(alpha, n_params) * sigma
+        sigma_simu = normalization_factor * sigma
+        logger.info(f"Normalization factor: {normalization_factor}")
     else:
         sigma_simu = sigma
 
     generalization, _, accuracy_tab,\
-          *_ = run_one_simulation(horizon, 
+          _, gradient_mean = run_one_simulation(horizon, 
                                     d,
                                     eta,
                                     sigma_simu,
@@ -204,7 +211,7 @@ def run_and_save_one_simulation(result_dir: str,
                                     data,
                                     n_ergodic,
                                     n_classes,
-                                    momentum,
+                                    decay,
                                     depth,
                                     width,
                                     seed=model_seed)
@@ -221,13 +228,16 @@ def run_and_save_one_simulation(result_dir: str,
         "alpha": alpha,
         "n_ergodic": n_ergodic,
         "n_classes": n_classes,
-        "momentum": momentum,
+        "decay": decay,
         "depth": depth,
         "width": width,
         "loss_generalization": float(generalization),
         "acc_generalization": float(100. * (accuracy_tab[-1][0] - accuracy_tab[-1][1])),
         "id_sigma": id_sigma,
-        "id_alpha": id_alpha
+        "id_alpha": id_alpha,
+        "normalization_factor": normalization_factor,
+        "normalization": int(normalization),
+        "gradient_mean": float(gradient_mean)
     }
 
     result_dir = Path(result_dir)
