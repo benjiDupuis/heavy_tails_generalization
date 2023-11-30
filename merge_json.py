@@ -5,7 +5,7 @@ import fire
 from loguru import logger
 from tqdm import tqdm
 
-def mrege_json(result_dir: str):
+def merge_json(result_dir: str):
 
     result_dir = Path(result_dir)
     assert result_dir.is_dir(), str(result_dir)
@@ -45,6 +45,9 @@ def mrege_json(result_dir: str):
 
     with open(str(output_path), "w") as output_file:
         json.dump(final_results, output_file, indent=2)
+
+if __name__ == "__main__":
+    fire.Fire(merge_json)
 
     
 
