@@ -49,7 +49,9 @@ def main(args_):
                                 args_.model_seed,
                                 args_.normalization,
                                 args_.id_sigma,
-                                args_.id_alpha)
+                                args_.id_alpha,
+                                args_.compute_gradient
+                                )
 
 
 

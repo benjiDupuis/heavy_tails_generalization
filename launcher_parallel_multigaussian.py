@@ -147,6 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--depth', type=int, default=2)
     parser.add_argument('--width', type=int, default=50)
     parser.add_argument('--normalization', type=bool, default=False)
+    parser.add_argument('--compute_gradient', type=bool, default=True)
 
     args = parser.parse_args()
     main(args)

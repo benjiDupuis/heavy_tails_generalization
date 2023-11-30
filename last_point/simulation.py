@@ -135,7 +135,7 @@ def run_one_simulation(horizon: int,
     # Compute the estimated generalization at the end
     gen_tab = np.array(gen_tab)
     generalization = gen_tab.mean()
-    gradient_mean = np.array(gradient_norm_list).mean()
+    gradient_mean = np.array(gradient_norm_list).mean() if compute_gradients else None
 
     return float(generalization), loss_tab, accuracy_tab,\
           (out.detach().cpu().numpy(), out_val.detach().cpu().numpy()), gradient_mean
@@ -167,7 +167,8 @@ def run_and_save_one_simulation(result_dir: str,
                         model_seed: int = 42,
                         normalization: bool = True,
                         id_sigma: int = 0,
-                        id_alpha: int = 0):
+                        id_alpha: int = 0,
+                        compute_gradient: bool = False):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
@@ -214,7 +215,8 @@ def run_and_save_one_simulation(result_dir: str,
                                     decay,
                                     depth,
                                     width,
-                                    seed=model_seed)
+                                    seed=model_seed,
+                                    compute_gradients=compute_gradient)
     
     result_dict = {
         "horizon": horizon, 
