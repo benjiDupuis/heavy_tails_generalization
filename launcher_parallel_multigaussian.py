@@ -91,6 +91,7 @@ def main(args_):
                 run_results_folder = exp_path / str(init_seeds[j])
                 if not run_results_folder.is_dir():
                     run_results_folder.mkdir(parents=True, exist_ok=True)
+                logger.info(f"{str(run_results_folder)}_{s}_{a}")
 
                 flags['result_dir'] = str(run_results_folder)
 
