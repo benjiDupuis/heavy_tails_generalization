@@ -137,7 +137,7 @@ def run_one_simulation(horizon: int,
     gen_tab = np.array(gen_tab)
     generalization = gen_tab.mean()
 
-    return generalization, loss_tab, accuracy_tab,\
+    return generalization.cpu().detach().item(), loss_tab, accuracy_tab,\
           (out.detach().cpu().numpy(), out_val.detach().cpu().numpy())
 
 
