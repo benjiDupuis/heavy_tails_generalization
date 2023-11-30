@@ -36,12 +36,6 @@ def run_one_simulation(horizon: int,
     # Device
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    # Seed
-    # TODO: does this affect the generation of the levy processes?
-    # TODO: if it does, can we still trust the experimental results?
-    # TODO: how does the levy process generation use the seed?
-    torch.manual_seed(seed)
-
     # Define data
     assert len(data) == 4, len(data)
     x_train = data[0].to(device)
@@ -57,17 +51,17 @@ def run_one_simulation(horizon: int,
 
     n = x_train.shape[0]
 
-    # Define model, loss and optimizer
-    # if depth == 0:
-    #     model = LinearModel(d, n_classes = n_classes).to(device) 
-    #     with torch.no_grad():
-    #         model.initialization(initialization)
-    # else:
-    #     model = fcnn(depth=depth, width=width)
+    # Seed
+    # TODO: does this affect the generation of the levy processes?
+    # TODO: if it does, can we still trust the experimental results?
+    # TODO: how does the levy process generation use the seed?
+    torch.manual_seed(seed)
+    # np.random.seed(seed)
     model = fcnn(d, width, depth, False, n_classes)
     
     opt = torch.optim.SGD(model.parameters(),
-                           lr = eta, momentum=momentum)
+                           lr = eta,
+                           momentum=momentum)
     crit = nn.CrossEntropyLoss().to(device)
 
     loss_tab = []
@@ -184,6 +178,7 @@ def run_and_save_one_simulation(result_dir: str,
                                                         means_deterministic=means)
 
     data = (x_train, y_train, x_val, y_val)
+    print(data)
 
     # TODO remove this hack
     initialization = None 

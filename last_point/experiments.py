@@ -172,7 +172,6 @@ class Simulation:
                                                        width=self.width,
                                                        depth=self.depth)
 
-                breakpoint()
                 gen_grid[s, a] = generalization
                 acc_gen_grid[s, a] = 100. * (accuracy_tab[-1][0] - accuracy_tab[-1][1])
 
