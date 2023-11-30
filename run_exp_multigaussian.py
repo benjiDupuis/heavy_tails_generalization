@@ -45,7 +45,10 @@ def main(args_):
                                 args_.depth,
                                 args_.width,
                                 args_.data_seed,
-                                args_.model_seed)
+                                args_.model_seed,
+                                args_.normalization,
+                                args_.id_sigma,
+                                args_.id_alpha)
 
 
 
