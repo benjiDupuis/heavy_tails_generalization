@@ -61,7 +61,7 @@ def run_one_simulation(horizon: int,
     
     opt = torch.optim.SGD(model.parameters(),
                            lr = eta,
-                           momentum=momentum)
+                           momentum = momentum)
     crit = nn.CrossEntropyLoss().to(device)
 
     loss_tab = []
@@ -116,16 +116,16 @@ def run_one_simulation(horizon: int,
 
             accuracy_tab.append((accuracy_train, accuracy_val))
 
-        # Adding the levy noise
-        with torch.no_grad():
-            model.add_noise(torch.from_numpy(noise[k]).to(device))
-
         if k == 0:
             logger.debug(f"Initial train accuracy: {accuracy_train}")
             logger.debug(f"Initial test accuracy: {accuracy_train}")
 
         # Gradient step, put there to ensure initial acc are not corrupted
         opt.step()
+
+        # Adding the levy noise
+        with torch.no_grad():
+            model.add_noise(torch.from_numpy(noise[k]).to(device))
 
     # Compute the estimated generalization at the end
     gen_tab = np.array(gen_tab)
@@ -170,6 +170,7 @@ def run_and_save_one_simulation(result_dir: str,
     # Generate the data
     # First the seed is set, so that each training will have the same data
     np.random.seed(data_seed)
+    torch.manual_seed(data_seed)
     n_per_class_train = n // n_classes
     x_train, y_train, means = sample_standard_gaussian_mixture(d, n_per_class_train)
     n_per_class_val = n_val // n_classes
