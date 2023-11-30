@@ -238,9 +238,9 @@ def run_and_save_one_simulation(result_dir: str,
     if not result_dir.is_dir():
         result_dir.mkdir()
 
-    result_path = (result_dir / "result").with_suffix(".json")
+    result_path = (result_dir / f"result_{id_sigma}_{id_alpha}").with_suffix(".json")
 
     with open(str(result_path), "w") as result_file:
-        json.dump(result_dict, result_file)
+        json.dump(result_dict, result_file, indent = 2)
 
     

@@ -102,24 +102,6 @@ def main(args_):
     # submit jobs
     generate_run_commands(command_list, num_gpus=args.num_gpus, num_cpus=args.num_cpus, mode=mode, promt=False)
 
-    # Create the resulting json file
-    final_results = {}
-
-    json_list = [p for p in exp_path.rglob("*.json") if p.stem.startswith("result")]
-    n = 0
-    for p in json_list:
-        with open(str(p), "r") as json_file:
-            res = json.load(json_file)
-            final_results.update({str(n): res})
-        n += 1
-    
-    output_path = exp_path / f"results_final_{n}.json"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    logger.info(f"Collecting the results of {len(json_list)} experiments in {str(output_path)}")
-
-    with open(str(output_path), "w") as output_file:
-        json.dump(final_results, output_file, indent=2)
 
 
 """
