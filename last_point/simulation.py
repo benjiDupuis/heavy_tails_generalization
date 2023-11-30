@@ -135,7 +135,7 @@ def run_one_simulation(horizon: int,
     # Compute the estimated generalization at the end
     gen_tab = np.array(gen_tab)
     generalization = gen_tab.mean()
-    gradient_mean = np.array(gradient_norm_list).mean() if compute_gradients else None
+    gradient_mean = float(np.array(gradient_norm_list).mean()) if compute_gradients else "non_computed"
 
     return float(generalization), loss_tab, accuracy_tab,\
           (out.detach().cpu().numpy(), out_val.detach().cpu().numpy()), gradient_mean
@@ -239,7 +239,7 @@ def run_and_save_one_simulation(result_dir: str,
         "id_alpha": id_alpha,
         "normalization_factor": normalization_factor,
         "normalization": int(normalization),
-        "gradient_mean": float(gradient_mean)
+        "gradient_mean": gradient_mean
     }
 
     result_dir = Path(result_dir)

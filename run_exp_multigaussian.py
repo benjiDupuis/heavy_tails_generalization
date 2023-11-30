@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('--normalization', type=bool, default=False)
     parser.add_argument('--id_sigma', type=int, default=0)
     parser.add_argument('--id_alpha', type=int, default=0)
-    parser.add_argument('--compute_gradients', type=int, default=0)
+    parser.add_argument('--compute_gradients', type=int, default=1)
 
 
     
