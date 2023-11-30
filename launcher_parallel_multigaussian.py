@@ -64,7 +64,7 @@ def main(args_):
             ['num_cpus', 'num_gpus',\
             'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
             'num_seeds_per_hparam', 'grid_size', 'seed',
-            'date']]
+            'date', 'long']]
 
             # randomly sample flags
             for flag in default_configs:
@@ -101,7 +101,12 @@ def main(args_):
                 exp_num+=1
 
     # submit jobs
-    generate_run_commands(command_list, num_gpus=args.num_gpus, num_cpus=args.num_cpus, mode=mode, promt=False)
+    generate_run_commands(command_list, 
+                          num_gpus=args.num_gpus,
+                            num_cpus=args.num_cpus, 
+                            mode=mode, 
+                            promt=False,
+                            long=args_.long)
 
 
 
