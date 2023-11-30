@@ -57,8 +57,8 @@ def analyze_one_seed(json_path: str):
     logger.info(f"Found {num_exp} experiments")
 
     # Collect n_alpha and n_sigma
-    n_sigma = max(results[k]["id_sigma"] for k in results.keys())
-    n_alpha = max(results[k]["id_alpha"] for k in results.keys())
+    n_sigma = 1 + max(results[k]["id_sigma"] for k in results.keys())
+    n_alpha = 1 + max(results[k]["id_alpha"] for k in results.keys())
 
     # Collect sigma_tab, alpha_tab, and the generalization grids
     sigma_tab = np.zeros(n_sigma)
