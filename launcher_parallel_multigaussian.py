@@ -112,7 +112,7 @@ def main(args_):
 
 """
 Test Commmand
-PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10
+PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1
 """
 
 
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     parser.add_argument('--mode', type=str, default="euler_slurm")
     parser.add_argument('--long', type=int, default=0)
 
-    parser.add_argument('--num_cpus', type=int, default=10)
+    parser.add_argument('--num_cpus', type=int, default=15)
     parser.add_argument('--num_gpus', type=int, default=0)
 
     # Parameters which are launcher specific
@@ -143,11 +143,11 @@ if __name__ == '__main__':
     parser.add_argument('--n_val', type=int, default=1000)
     parser.add_argument('--n_ergodic', type=int, default=5000)
     parser.add_argument('--n_classes', type=int, default=2)
-    parser.add_argument('--decay', type=float, default=0.)
+    parser.add_argument('--decay', type=float, default=0.01)
     parser.add_argument('--depth', type=int, default=2)
     parser.add_argument('--width', type=int, default=50)
     parser.add_argument('--normalization', type=bool, default=False)
-    parser.add_argument('--compute_gradient', type=bool, default=True)
+    parser.add_argument('--compute_gradients', type=int, default=0)
 
     args = parser.parse_args()
     main(args)
