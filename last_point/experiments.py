@@ -171,6 +171,8 @@ class Simulation:
                                                        momentum=self.momentum,
                                                        width=self.width,
                                                        depth=self.depth)
+
+                breakpoint()
                 gen_grid[s, a] = generalization
                 acc_gen_grid[s, a] = 100. * (accuracy_tab[-1][0] - accuracy_tab[-1][1])
 
@@ -433,10 +435,12 @@ def main(n=1000,
     simulator.plot_results(gen_grid, sigma_tab, alpha_tab, output_dir, horizon)
 
 
+"""
+Test command: 
+PYTHONPATH=$PWD python -m pdb last_point/experiments.py --n 10 --d 2 --n_val 10 --horizon 10 --n_sigma 2 --n_alpha 2 --output_dir tests --depth 1 --width 2
+"""
+
 if __name__ == "__main__":
-    """
-    Test command: 
-    PYTHONPATH=$PWD python -m pdb last_point/experiments.py --n 10 --d 2 --n_val 10 --horizon 10 --n_sigma 2 --n_alpha 2 --output_dir tests --depth 1 --width 2
-    """
+    
 
     fire.Fire(main)

@@ -137,7 +137,7 @@ def run_one_simulation(horizon: int,
     gen_tab = np.array(gen_tab)
     generalization = gen_tab.mean()
 
-    return generalization.cpu().detach().item(), loss_tab, accuracy_tab,\
+    return float(generalization), loss_tab, accuracy_tab,\
           (out.detach().cpu().numpy(), out_val.detach().cpu().numpy())
 
 
@@ -228,8 +228,8 @@ def run_and_save_one_simulation(result_dir: str,
         "momentum": momentum,
         "depth": depth,
         "width": width,
-        "loss_generalization": generalization,
-        "acc_generalization": 100. * (accuracy_tab[-1][0] - accuracy_tab[-1][1]),
+        "loss_generalization": float(generalization),
+        "acc_generalization": float(100. * (accuracy_tab[-1][0] - accuracy_tab[-1][1])),
         "id_sigma": id_sigma,
         "id_alpha": id_alpha
     }
