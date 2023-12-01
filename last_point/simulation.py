@@ -29,7 +29,8 @@ def run_one_simulation(horizon: int,
                         depth: int = 0,
                         width: int = 50,
                         seed: int = 42,
-                        compute_gradients: bool = False):
+                        compute_gradients: bool = False,
+                        bias: bool = False):
     """
     Data format should be (x_train, y_train, x_val, y_val)
     """
@@ -58,7 +59,7 @@ def run_one_simulation(horizon: int,
     # TODO: how does the levy process generation use the seed?
     torch.manual_seed(seed)
     # np.random.seed(seed)
-    model = fcnn(d, width, depth, False, n_classes)
+    model = fcnn(d, width, depth, bias, n_classes)
     
     opt = torch.optim.SGD(model.parameters(),
                            lr = eta,
@@ -71,6 +72,9 @@ def run_one_simulation(horizon: int,
     gradient_norm_list = []
 
     # Generate all noise
+    # First reinitialize the seed
+    # TODO: do something better than this hack and understand what is going on
+    np.random.seed(np.random.randint(10000))
     n_params = model.params_number()
     noise = sigma * generate_levy_for_simulation(n_params, \
                                          horizon + n_ergodic,
@@ -126,7 +130,8 @@ def run_one_simulation(horizon: int,
         opt.step()
 
         if compute_gradients and k >= horizon:
-            gradient_norm_list.append(model.gradient_l2_squared_norm())
+            with torch.no_grad():
+                gradient_norm_list.append(model.gradient_l2_squared_norm())
 
         # Adding the levy noise
         with torch.no_grad():
@@ -138,7 +143,7 @@ def run_one_simulation(horizon: int,
     gradient_mean = float(np.array(gradient_norm_list).mean()) if compute_gradients else "non_computed"
 
     return float(generalization), loss_tab, accuracy_tab,\
-          (out.detach().cpu().numpy(), out_val.detach().cpu().numpy()), gradient_mean
+          None, gradient_mean
 
 
 def stable_normalization(alpha: float, d: float) -> float:
@@ -168,7 +173,8 @@ def run_and_save_one_simulation(result_dir: str,
                         normalization: bool = True,
                         id_sigma: int = 0,
                         id_alpha: int = 0,
-                        compute_gradient: bool = False):
+                        compute_gradient: bool = False,
+                        bias: bool = False):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
@@ -191,7 +197,7 @@ def run_and_save_one_simulation(result_dir: str,
     initialization = None 
 
     # TODO: remove this hack
-    model_temp = fcnn(d, width, depth, False, n_classes)
+    model_temp = fcnn(d, width, depth, bias, n_classes)
     n_params = model_temp.params_number()
 
     # Normalization, if necessary
@@ -216,7 +222,8 @@ def run_and_save_one_simulation(result_dir: str,
                                     depth,
                                     width,
                                     seed=model_seed,
-                                    compute_gradients=compute_gradient)
+                                    compute_gradients=compute_gradient,
+                                    bias=bias)
     
     result_dict = {
         "horizon": horizon, 

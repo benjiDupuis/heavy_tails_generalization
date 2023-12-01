@@ -50,7 +50,8 @@ def main(args_):
                                 args_.normalization,
                                 args_.id_sigma,
                                 args_.id_alpha,
-                                args_.compute_gradients
+                                args_.compute_gradients,
+                                args_.bias
                                 )
 
 
@@ -87,6 +88,8 @@ if __name__ == '__main__':
     parser.add_argument('--id_sigma', type=int, default=0)
     parser.add_argument('--id_alpha', type=int, default=0)
     parser.add_argument('--compute_gradients', type=int, default=1)
+    parser.add_argument('--bias', type=int, default=1)
+
 
 
     

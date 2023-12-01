@@ -44,7 +44,7 @@ class Simulation:
                  w_init_std: float = 0.1,
                  normalization: bool = False,
                  seed: int = None,
-                 momentum: float = 0.,
+                 decay: float = 0.,
                  depth: int = 1,
                  width: int = 50
                  ):
@@ -67,7 +67,7 @@ class Simulation:
         self.n_classes: int = n_classes
         self.n_val: int = n_val
         self.normalization: bool = normalization
-        self.momentum: float = momentum
+        self.decay: float = decay
         self.depth: int = depth
         self.width: int = width
 
@@ -159,7 +159,7 @@ class Simulation:
                     sigma_simu = sigma_tab[s]
 
                 generalization, loss_tab, \
-                     accuracy_tab, estimator = run_one_simulation(horizon,
+                     accuracy_tab, estimator, *_ = run_one_simulation(horizon,
                                                        self.d,
                                                        eta,
                                                        sigma_simu,
@@ -168,7 +168,7 @@ class Simulation:
                                                        data,
                                                        n_ergodic,
                                                        n_classes=self.n_classes,
-                                                       momentum=self.momentum,
+                                                       decay=self.decay,
                                                        width=self.width,
                                                        depth=self.depth)
 
