@@ -33,6 +33,7 @@ class NoisyGDModel(nn.Module):
             param_len = param.numel()
             param_size = param.size()
             param.add_(w[count:(count+param_len)].reshape(param_size))
+            count += param_len
 
     @torch.no_grad()
     def initialization(self, w: torch.Tensor):
