@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 class LogisticLoss():
@@ -36,6 +37,30 @@ def accuracy(y: torch.Tensor, \
                 (estimated_classes, target.shape)
     
     return (target == estimated_classes).to("cpu").float().mean()
+
+
+def linear_regression(x_tab: np.ndarray, 
+                          y_tab: np.ndarray, 
+                          threshold: float = 1.e-6) -> float:
+        """
+        x_tab and y_tab are supposed to be one dimensional
+        ie the data is scalar
+        this performs linear regression y = ax + b and returns a
+        """
+        assert x_tab.ndim == 1, x_tab.shape
+        assert y_tab.ndim == 1, y_tab.shape
+        assert x_tab.shape == y_tab.shape, (x_tab.shape, y_tab.shape)
+
+        n = len(x_tab)
+
+        num = (x_tab * y_tab).sum() - x_tab.sum() * y_tab.sum() / n
+        den = (x_tab * x_tab).sum() - x_tab.sum()**2 / n
+
+        if den < threshold:
+            logger.warning("Inifnite or undefined slope")
+            return None
+        
+        return num / den
     
 
     

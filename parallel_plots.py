@@ -3,21 +3,76 @@ from pathlib import Path
 
 import fire
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
-def plot_bound(gen_tab, bound_tab, output_dir: str, log_scale: bool = True, stem: str=""):
+from last_point.utils import linear_regression
+
+def all_linear_regression(
+                        gen_grid: np.ndarray,
+                        sigma_tab: np.ndarray,
+                        alpha_tab: np.ndarray) -> (np.ndarray, np.ndarray):
+        """
+        Returns the regression of the gen with respect to log(1/sigma), for each alpha
+        and the regression of the gen with respect to alpha, for each sigma
+        """
+        n_alpha = len(alpha_tab)
+        n_sigma = len(sigma_tab)
+
+        # Regression gen/log(1/sigma)
+        alpha_reg = np.zeros(n_alpha)
+        for a in range(n_alpha):
+            alpha_reg[a] = linear_regression(np.log(1./sigma_tab), gen_grid[:, a])
+
+        # Regression gen/alpha
+        correlation_reg = np.zeros(n_sigma)
+        for s in range(n_sigma):
+            correlation_reg[s] = linear_regression(alpha_tab, gen_grid[s, :])
+
+        return alpha_reg, correlation_reg
+
+def plot_bound(gen_tab, bound_tab, output_dir: str,
+                sigma_values, alpha_values,
+                    log_scale: bool = True, stem: str=""):
     
     output_dir = Path(output_dir)
-    output_path = (output_dir / ("estimated bound versus generalization_" + stem )).with_suffix(".png")
 
+    # Colormap
+    color_map = plt.cm.get_cmap('RdYlBu')
+    
     plt.figure()
-    plt.scatter(gen_tab, bound_tab)
+    output_path = (output_dir / ("estimated bound versus generalization_sigma_"  + stem )).with_suffix(".png")
+    # plt.scatter(gen_tab, bound_tab)
+    sc = plt.scatter(gen_tab,
+                     bound_tab,
+                     c=sigma_values,
+                     cmap=color_map)
+    cbar = plt.colorbar(sc, norm = matplotlib.colors.LogNorm())
+    cbar.set_label("sigma")
     if log_scale:
         plt.yscale("log")
         plt.xscale("log")
     plt.title("estimated bound versus generalization")
+    logger.info(f"Saving a bound plot in {str(output_path)}")
+    plt.savefig(str(output_path))
+    plt.close()
+
+    plt.figure()
+    output_path = (output_dir / ("estimated bound versus generalization_alpha_"  + stem )).with_suffix(".png")
+    # plt.scatter(gen_tab, bound_tab)
+    sc = plt.scatter(gen_tab,
+                     bound_tab,
+                     c=alpha_values,
+                     cmap=color_map)
+    cbar = plt.colorbar(sc)
+    cbar.set_label("alpha")
+    if log_scale:
+        plt.yscale("log")
+        plt.xscale("log")
+    plt.title("estimated bound versus generalization")
+    logger.info(f"Saving a bound plot in {str(output_path)}")
     plt.savefig(str(output_path))
     plt.close()
 
@@ -50,7 +105,7 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str):
             plt.figure()
             plt.scatter(sigma_tab, gen_grid[:, a])
             plt.xscale("log")
-            plt.ylim(0., 100.)
+            # plt.ylim(0., 100.)
             # plt.yscale("log")          
             plt.title(f'Generalization error for alpha = {alpha_tab[a]}')
 
@@ -59,6 +114,24 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str):
             output_path = (output_dir / fig_name).with_suffix(".png")
             plt.savefig(str(output_path))
             plt.close()
+    
+    # Finally: the linear regressions
+    alpha_reg, correlation_reg = all_linear_regression(
+        gen_grid,
+        sigma_tab,
+        alpha_tab
+    )
+    if all(alpha_reg[k] is not None for k in range(len(alpha_tab))):
+        alpha_reg_path = (output_dir / "alpha_regression").with_suffix(".png")
+        plt.figure()
+        plt.plot(np.linspace(1,2, 100), np.linspace(1,2,100), color = "r")
+        plt.scatter(alpha_tab, alpha_reg)
+        plt.title("Regression of alpha from the generalization bound")
+        plt.savefig(str(alpha_reg_path))
+        plt.close()
+
+
+
 
 
 def analyze_one_seed(json_path: str):
@@ -112,22 +185,28 @@ def analyze_one_seed(json_path: str):
 
         # Estimate the actual value of the bound
         n = results[k]["n"]
-        normalization_factor = results[k]["normalization_factor"]
+        # normalization_factor = results[k]["normalization_factor"]
         alpha = results[k]["alpha"]
         sigma = results[k]["sigma"]
         gradient = results[k]["gradient_mean"]
-        constant = np.power(normalization_factor, alpha)
+        # constant = np.power(normalization_factor, alpha)
+
+        constant = results[k]["K_constant"]
         normalization_tab[results[k]["id_alpha"]] = constant
 
         bound_tab.append(np.sqrt(constant * gradient / (n * sigma)))
         acc_bound_tab.append(np.sqrt(constant / (n * sigma)))
-        print(normalization_tab)
 
     # Plot everything
-    output_dir = json_path.parent
+    output_dir = json_path.parent.parent / (json_path.parent.stem + "_figures")
+    if not output_dir.is_dir():
+        output_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Saving figures in {str(output_dir)}")
+
+    # plot_one_seed(acc_gen_grid, sigma_tab, alpha_tab, str(output_dir))
     plot_one_seed(acc_gen_grid / np.sqrt(normalization_tab[np.newaxis, :]), sigma_tab, alpha_tab, str(output_dir))
-    plot_bound(gen_tab, bound_tab, output_dir, log_scale=True)
-    plot_bound(acc_tab, bound_tab, output_dir, log_scale=True, stem="accuracy")
+    plot_bound(gen_tab, bound_tab, output_dir, sigma_values, alpha_values, log_scale=True)
+    plot_bound(acc_tab, bound_tab, output_dir, sigma_values, alpha_values, log_scale=True, stem="accuracy")
     
 
 if __name__ == "__main__":

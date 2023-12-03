@@ -127,17 +127,17 @@ if __name__ == '__main__':
     parser.add_argument('--num_gpus', type=int, default=0)
 
     # Parameters which are launcher specific
-    parser.add_argument('--sigma_min', type=float, default=0.0001)
-    parser.add_argument('--sigma_max', type=float, default=10.)
-    parser.add_argument('--alpha_min', type=float, default=1.2)
+    parser.add_argument('--sigma_min', type=float, default=0.001)
+    parser.add_argument('--sigma_max', type=float, default=1.)
+    parser.add_argument('--alpha_min', type=float, default=1.5)
     parser.add_argument('--alpha_max', type=float, default=2.)
     parser.add_argument('--grid_size', type=int, default=10)
     parser.add_argument('--seed', type=int, default=26)
     parser.add_argument('--num_seeds_per_hparam', type=int, default=1)
 
     # Parameters that are shared among all runs
-    parser.add_argument('--horizon', type=int, default=10000)
-    parser.add_argument('--d', type=int, default=10)
+    parser.add_argument('--horizon', type=int, default=30000)
+    parser.add_argument('--d', type=int, default=50)
     parser.add_argument('--eta', type=float, default=0.001)
     parser.add_argument('--n', type=int, default=1000)
     parser.add_argument('--n_val', type=int, default=1000)
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     parser.add_argument('--width', type=int, default=100)
     parser.add_argument('--normalization', type=bool, default=False)
     parser.add_argument('--compute_gradients', type=int, default=1)
-    parser.add_argument('--bias', type=int, default=1)
+    parser.add_argument('--bias', type=int, default=0)
 
 
     args = parser.parse_args()

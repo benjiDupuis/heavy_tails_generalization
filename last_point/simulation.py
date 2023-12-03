@@ -148,12 +148,21 @@ def run_one_simulation(horizon: int,
 
 def stable_normalization(alpha: float, d: float) -> float:
 
-        alpha_factor = np.power((2. - alpha) / (alpha * gamma(1. - alpha/2.)), 1./alpha)
+        alpha_factor = np.power((2. - alpha) * gamma(1. - alpha/2.) / (alpha), 1./alpha)
         dimension_factor = np.power(d, 0.5 - 1./alpha)
 
         norm_factor = alpha_factor / (np.sqrt(2.) * dimension_factor)
 
         return norm_factor
+
+def asymptotic_constant(alpha: float, d: float) -> float:
+
+    num_alpha = (2. - alpha) * gamma(1. - alpha / 2.)
+    den_alpha = alpha * np.power(2., alpha / 2.)
+    dimension_factor = np.power(d, 1. - alpha / 2.)
+
+    return num_alpha * dimension_factor / den_alpha
+
 
 def run_and_save_one_simulation(result_dir: str,
                         horizon: int, 
@@ -208,6 +217,8 @@ def run_and_save_one_simulation(result_dir: str,
     else:
         sigma_simu = sigma
 
+    K_constant = asymptotic_constant(alpha, n_params)
+
     generalization, _, accuracy_tab,\
           _, gradient_mean = run_one_simulation(horizon, 
                                     d,
@@ -246,7 +257,10 @@ def run_and_save_one_simulation(result_dir: str,
         "id_alpha": id_alpha,
         "normalization_factor": normalization_factor,
         "normalization": int(normalization),
-        "gradient_mean": gradient_mean
+        "gradient_mean": gradient_mean,
+        "K_constant": K_constant,
+        "n_params": n_params,
+        "bias": bias
     }
 
     result_dir = Path(result_dir)
