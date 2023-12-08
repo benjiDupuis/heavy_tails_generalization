@@ -9,6 +9,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from last_point.utils import linear_regression
+from last_point.simulation import asymptotic_constant
 
 def all_linear_regression(
                         gen_grid: np.ndarray,
@@ -188,14 +189,15 @@ def analyze_one_seed(json_path: str):
         # normalization_factor = results[k]["normalization_factor"]
         alpha = results[k]["alpha"]
         sigma = results[k]["sigma"]
+        n_params = results[k]["n_params"]
         gradient = results[k]["gradient_mean"]
         # constant = np.power(normalization_factor, alpha)
 
-        constant = results[k]["K_constant"]
+        constant = asymptotic_constant(alpha, n_params)
         normalization_tab[results[k]["id_alpha"]] = constant
 
-        bound_tab.append(np.sqrt(constant * gradient / (n * sigma)))
-        acc_bound_tab.append(np.sqrt(constant / (n * sigma)))
+        bound_tab.append(np.sqrt(constant * gradient / (n * np.power(sigma, alpha))))
+        acc_bound_tab.append(np.sqrt(constant / (n * np.power(sigma, alpha))))
 
     # Plot everything
     output_dir = json_path.parent.parent / (json_path.parent.stem + "_figures")
@@ -203,8 +205,8 @@ def analyze_one_seed(json_path: str):
         output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving figures in {str(output_dir)}")
 
-    # plot_one_seed(acc_gen_grid, sigma_tab, alpha_tab, str(output_dir))
-    plot_one_seed(acc_gen_grid / np.sqrt(normalization_tab[np.newaxis, :]), sigma_tab, alpha_tab, str(output_dir))
+    plot_one_seed(acc_gen_grid, sigma_tab, alpha_tab, str(output_dir))
+    # plot_one_seed(acc_gen_grid / np.sqrt(normalization_tab[np.newaxis, :]), sigma_tab, alpha_tab, str(output_dir))
     plot_bound(gen_tab, bound_tab, output_dir, sigma_values, alpha_values, log_scale=True)
     plot_bound(acc_tab, bound_tab, output_dir, sigma_values, alpha_values, log_scale=True, stem="accuracy")
     

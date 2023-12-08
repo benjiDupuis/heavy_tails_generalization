@@ -112,7 +112,7 @@ def main(args_):
 
 """
 Test Commmand
-PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1
+PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 1 --horizon 10 --compute_gradients 1
 """
 
 
@@ -128,23 +128,23 @@ if __name__ == '__main__':
 
     # Parameters which are launcher specific
     parser.add_argument('--sigma_min', type=float, default=0.001)
-    parser.add_argument('--sigma_max', type=float, default=1.)
+    parser.add_argument('--sigma_max', type=float, default=0.1)
     parser.add_argument('--alpha_min', type=float, default=1.5)
     parser.add_argument('--alpha_max', type=float, default=2.)
-    parser.add_argument('--grid_size', type=int, default=10)
-    parser.add_argument('--seed', type=int, default=26)
+    parser.add_argument('--grid_size', type=int, default=7)
+    parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--num_seeds_per_hparam', type=int, default=1)
 
     # Parameters that are shared among all runs
-    parser.add_argument('--horizon', type=int, default=30000)
-    parser.add_argument('--d', type=int, default=50)
+    parser.add_argument('--horizon', type=int, default=20000)
+    parser.add_argument('--d', type=int, default=10)
     parser.add_argument('--eta', type=float, default=0.001)
     parser.add_argument('--n', type=int, default=1000)
     parser.add_argument('--n_val', type=int, default=1000)
-    parser.add_argument('--n_ergodic', type=int, default=2000)
+    parser.add_argument('--n_ergodic', type=int, default=5000)
     parser.add_argument('--n_classes', type=int, default=2)
-    parser.add_argument('--decay', type=float, default=0.1)
-    parser.add_argument('--depth', type=int, default=2)
+    parser.add_argument('--decay', type=float, default=0.01)
+    parser.add_argument('--depth', type=int, default=3)
     parser.add_argument('--width', type=int, default=100)
     parser.add_argument('--normalization', type=bool, default=False)
     parser.add_argument('--compute_gradients', type=int, default=1)

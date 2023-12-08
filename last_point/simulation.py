@@ -13,7 +13,7 @@ from last_point.utils import accuracy
 from levy.levy import generate_levy_for_simulation
 
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
-from last_point.model import fcnn
+from last_point.model import fcnn, SinusFCNN
 
 
 def run_one_simulation(horizon: int, 
@@ -60,6 +60,7 @@ def run_one_simulation(horizon: int,
     torch.manual_seed(seed)
     # np.random.seed(seed)
     model = fcnn(d, width, depth, bias, n_classes)
+    # model = SinusFCNN(depth=depth, width=width, input_dim=d, bias=True)
     
     opt = torch.optim.SGD(model.parameters(),
                            lr = eta,
@@ -148,16 +149,32 @@ def run_one_simulation(horizon: int,
 
 def stable_normalization(alpha: float, d: float) -> float:
 
-        alpha_factor = np.power((2. - alpha) * gamma(1. - alpha/2.) / (alpha), 1./alpha)
-        dimension_factor = np.power(d, 0.5 - 1./alpha)
+        assert alpha >= 1., alpha
+        assert alpha <= 2., alpha
 
+        if alpha == 2.:
+            # asymptotic development of gamma(1-s)
+            # using EUler reflection formula
+            # TODO: recheck this
+            alpha_factor = 1.
+        else:
+            alpha_factor = np.power((2. - alpha) * gamma(1. - alpha/2.) / (alpha), 1./alpha)
+
+        dimension_factor = np.power(d, 0.5 - 1./alpha)
         norm_factor = alpha_factor / (np.sqrt(2.) * dimension_factor)
 
         return norm_factor
 
 def asymptotic_constant(alpha: float, d: float) -> float:
 
-    num_alpha = (2. - alpha) * gamma(1. - alpha / 2.)
+    if alpha == 2.:
+        # asymptotic development of gamma(1-s)
+        # using EUler reflection formula
+        # TODO: recheck this
+        num_alpha = 2.
+    else:
+        num_alpha = (2. - alpha) * gamma(1. - alpha / 2.)
+
     den_alpha = alpha * np.power(2., alpha / 2.)
     dimension_factor = np.power(d, 1. - alpha / 2.)
 
@@ -235,7 +252,18 @@ def run_and_save_one_simulation(result_dir: str,
                                     seed=model_seed,
                                     compute_gradients=compute_gradient,
                                     bias=bias)
-    
+
+    # Estimating accuracy error over last iterations
+    accuracy_error_tab = accuracy_tab[-n_ergodic:]
+    assert len(accuracy_error_tab) == n_ergodic
+    assert all(accuracy_error_tab[k][0] is not None for k in range(n_ergodic))
+    assert all(accuracy_error_tab[k][1] is not None for k in range(n_ergodic))
+
+    accuracy_error_tab_np = np.array([
+        accuracy_error_tab[k][0] - accuracy_error_tab[k][1] for k in range(n_ergodic)
+    ])
+    accuracy_error = float(100. * accuracy_error_tab_np.mean())
+
     result_dict = {
         "horizon": horizon, 
         "input_dimension": d,
@@ -252,7 +280,7 @@ def run_and_save_one_simulation(result_dir: str,
         "depth": depth,
         "width": width,
         "loss_generalization": float(generalization),
-        "acc_generalization": float(100. * (accuracy_tab[-1][0] - accuracy_tab[-1][1])),
+        "acc_generalization": accuracy_error,
         "id_sigma": id_sigma,
         "id_alpha": id_alpha,
         "normalization_factor": normalization_factor,

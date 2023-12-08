@@ -6,19 +6,19 @@ def main(n=1000,
           d = 10, 
           n_val = 1000,
           eta = 0.001,\
-          horizon = 0,
-          n_ergodic = 100,
+          horizon = 20000,
+          n_ergodic = 2,
           n_sigma: int = 1,
           n_alpha: int = 1, 
           init_std: float = 1.,
           normalization: bool = False,
-          sigma_min = 0.1,        
+          sigma_min = 1.,        
           sigma_max = 1.,
           decay = 0.,
-          alpha_min = 1.2,
+          alpha_min = 1.8,
           alpha_max = 2.,
           depth: int = 2,
-          width: int = 1000):
+          width: int = 50):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\
                            w_init_std=init_std, n_val=n_val,
