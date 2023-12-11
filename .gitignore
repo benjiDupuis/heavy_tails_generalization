@@ -14,6 +14,8 @@ __pychache__/
 
 tests/
 
+heavy_tails/
+
 results_parallel/
 
 levy_plots
