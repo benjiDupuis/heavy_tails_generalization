@@ -191,12 +191,14 @@ def analyze_one_seed(json_path: str):
         sigma = results[k]["sigma"]
         n_params = results[k]["n_params"]
         gradient = results[k]["gradient_mean"]
-        # constant = np.power(normalization_factor, alpha)
+
+        # in pytorch sgd, decay is the true decay, not post lr
+        decay = results[k]["decay"]
 
         constant = asymptotic_constant(alpha, n_params)
         normalization_tab[results[k]["id_alpha"]] = constant
 
-        bound_tab.append(np.sqrt(constant * gradient / (n * np.power(sigma, alpha))))
+        bound_tab.append(np.sqrt(constant * gradient / (n * decay * np.power(sigma, alpha))))
         acc_bound_tab.append(np.sqrt(constant / (n * np.power(sigma, alpha))))
 
     # Plot everything

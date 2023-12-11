@@ -12,8 +12,6 @@ import itertools
 from pathlib import Path
 from loguru import logger
 
-# TODO: clean all those parallel computations files 
-
 # os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 # os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
 
@@ -51,6 +49,11 @@ def main(args_):
     exp_path = Path(RESULT_DIR) / args_.date
     if not exp_path.is_dir():
         exp_path.mkdir(parents=True, exist_ok=True)
+
+    arg_path = exp_path / "arguments.json"
+    with open(str(arg_path), "w") as exp_file:
+        logger.info(f"Saving argments in {str(arg_path)}")
+        json.dump(args_.__dict__, exp_file, indent=2)
 
     command_list = []
     exp_num = 0
