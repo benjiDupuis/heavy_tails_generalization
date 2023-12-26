@@ -35,6 +35,10 @@ class NoisyGDModel(nn.Module):
             param.add_(w[count:(count+param_len)].reshape(param_size))
             count += param_len
 
+    @staticmethod()
+    def num_params() -> int:
+        pass
+     
     @torch.no_grad()
     def initialization(self, w: torch.Tensor):
         # TODO: implement this
@@ -51,7 +55,19 @@ class LinearModel(NoisyGDModel):
         
         self.input_dim: int = input_dim
         self.bias: bool = bias
+        self.num_classes: int = n_classes
+
         self.layer = nn.Linear(self.input_dim, n_classes, bias = self.bias)
+
+    @staticmethod()
+    def num_params(input_dim: int,
+                     n_classes: int,
+                     bias: bool = False) -> int:
+        linear_num = input_dim * n_classes
+        if bias:
+            return linear_num + n_classes
+        else:
+            return linear_num
 
     @torch.no_grad()
     def get_vector(self) -> torch.Tensor:
@@ -98,6 +114,21 @@ class FCNN(NoisyGDModel):
             *layers,
             nn.Linear(self.width, self.n_classes, bias=self.bias),
         )
+
+    @staticmethod()
+    def num_params(depth: int = 5,
+                  width: int = 50,
+                    input_dim: int = 10,
+                    n_classes: int = 2,
+                    bias: bool = False) -> int:
+        
+        linear_num = depth * (width**2) + \
+                            input_dim * width + \
+                            n_classes * width
+        if bias:
+            return linear_num + n_classes + (depth + 1) * width
+        else:
+            return linear_num
 
     def get_layers(self):
         layers = []

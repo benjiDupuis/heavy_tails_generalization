@@ -133,8 +133,6 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str):
 
 
 
-
-
 def analyze_one_seed(json_path: str):
 
     json_path = Path(json_path)

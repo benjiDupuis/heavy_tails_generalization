@@ -115,7 +115,7 @@ def main(args_):
 
 """
 Test Commmand
-PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 1 --horizon 10 --compute_gradients 1
+PYTHONPATH=$PWD python -m pdb launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 1 --horizon 10 --compute_gradients 1
 """
 
 
