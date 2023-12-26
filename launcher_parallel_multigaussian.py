@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
     # Parameters that are shared among all runs
     parser.add_argument('--horizon', type=int, default=10000)
-    parser.add_argument('--d', type=int, default=400)
+    parser.add_argument('--d', type=int, default=4)
     parser.add_argument('--eta', type=float, default=0.001)
     parser.add_argument('--n', type=int, default=100)
     parser.add_argument('--n_val', type=int, default=100)

@@ -35,7 +35,7 @@ class NoisyGDModel(nn.Module):
             param.add_(w[count:(count+param_len)].reshape(param_size))
             count += param_len
 
-    @staticmethod()
+    @staticmethod
     def num_params() -> int:
         pass
      
@@ -59,7 +59,7 @@ class LinearModel(NoisyGDModel):
 
         self.layer = nn.Linear(self.input_dim, n_classes, bias = self.bias)
 
-    @staticmethod()
+    @staticmethod
     def num_params(input_dim: int,
                      n_classes: int,
                      bias: bool = False) -> int:
@@ -115,7 +115,7 @@ class FCNN(NoisyGDModel):
             nn.Linear(self.width, self.n_classes, bias=self.bias),
         )
 
-    @staticmethod()
+    @staticmethod
     def num_params(depth: int = 5,
                   width: int = 50,
                     input_dim: int = 10,
