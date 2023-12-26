@@ -278,6 +278,8 @@ def run_and_save_one_simulation(result_dir: str,
     ])
     accuracy_error = float(100. * accuracy_error_tab_np.mean())
 
+    bound = np.sqrt(K_constant * gradient_mean / (n * decay * np.power(sigma, alpha)))
+
     result_dict = {
         "horizon": horizon, 
         "input_dimension": d,
@@ -302,7 +304,8 @@ def run_and_save_one_simulation(result_dir: str,
         "gradient_mean": gradient_mean,
         "K_constant": K_constant,
         "n_params": n_params,
-        "bias": bias
+        "bias": bias,
+        "estimated_bound": bound
     }
 
     result_dir = Path(result_dir)
