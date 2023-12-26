@@ -22,7 +22,7 @@ def merge_json(result_dir: str):
         seed_results = {}
 
         json_list = [p for p in seed.rglob("*.json") if p.stem.startswith("result") and "seed" not in p.stem]
-        n = 0
+        n = 0 
         for p in json_list:
             with open(str(p), "r") as json_file:
                 res = json.load(json_file)

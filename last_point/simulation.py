@@ -240,6 +240,12 @@ def run_and_save_one_simulation(result_dir: str,
     model_temp = fcnn(d, width, depth, bias, n_classes)
     n_params = model_temp.params_number()
 
+    ######################################
+    # We scale the value of sigma
+    # wrt the sqrt of the number of parameters
+    sigma = sigma * np.sqrt(n_params)
+    ######################################
+
     # Normalization, if necessary
     normalization_factor = stable_normalization(alpha, n_params)
     if normalization:

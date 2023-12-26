@@ -122,11 +122,11 @@ class FCNN(NoisyGDModel):
                     n_classes: int = 2,
                     bias: bool = False) -> int:
         
-        linear_num = depth * (width**2) + \
+        linear_num = (depth - 1) * (width**2) + \
                             input_dim * width + \
                             n_classes * width
         if bias:
-            return linear_num + n_classes + (depth + 1) * width
+            return linear_num + n_classes + depth * width
         else:
             return linear_num
 
