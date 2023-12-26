@@ -59,7 +59,7 @@ class LinearModel(NoisyGDModel):
         return self.layer.weight.data.detach().to("cpu")
 
     def forward(self, x):
-        x = x.view(x.size(0), self.input_dim) # I don't know why we have this
+        x = x.view(x.size(0), self.input_dim) # this flatten potential images
         x = self.layer(x)
         return x
 

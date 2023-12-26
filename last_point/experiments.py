@@ -10,6 +10,7 @@ from loguru import logger
 from scipy.special import gamma
 from tqdm import tqdm
 
+from data.dataset import get_full_batch_data
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
 from last_point.model import fcnn
 from last_point.simulation import run_one_simulation
@@ -46,7 +47,8 @@ class Simulation:
                  seed: int = None,
                  decay: float = 0.,
                  depth: int = 1,
-                 width: int = 50
+                 width: int = 50,
+                 data_type: str = "mnist"
                  ):
 
         if seed is None:
@@ -70,6 +72,7 @@ class Simulation:
         self.decay: float = decay
         self.depth: int = depth
         self.width: int = width
+        self.data_type: int = data_type
 
     def __str__(self) -> str:
         return json.dumps(self.__dict__, indent=2)
@@ -113,7 +116,8 @@ class Simulation:
     def simulation(self, 
                    horizon:int,
                     n_ergodic: int = 100,
-                    eta: float = 0.01):
+                    eta: float = 0.01,
+                    data_type="mnist"):
 
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         logger.info(f"on device {str(device)}")
@@ -121,14 +125,21 @@ class Simulation:
         gen_grid = np.zeros((self.n_sigma, self.n_alpha))
         acc_gen_grid = np.zeros((self.n_sigma, self.n_alpha))
 
-        # generate data
-        n_per_class_train = self.n // self.n_classes
-        x_train, y_train, means = sample_standard_gaussian_mixture(self.d, n_per_class_train)
-        n_per_class_val = self.n_val // self.n_classes
-        x_val, y_val, _ = sample_standard_gaussian_mixture(self.d, n_per_class_val, 
-                                                           random_centers=False, means_deterministic=means)
+        if data_type == "gaussian":
+            n_per_class_train = n // n_classes
+            x_train, y_train, means = sample_standard_gaussian_mixture(d, n_per_class_train)
+            n_per_class_val = n_val // n_classes
+            x_val, y_val, _ = sample_standard_gaussian_mixture(d, n_per_class_val, 
+                                                                random_centers=False, 
+                                                                means_deterministic=means)
 
-        data = (x_train, y_train, x_val, y_val)
+            data = (x_train, y_train, x_val, y_val)
+            print(data)
+
+        elif data_type == "mnist":
+            data = get_full_batch_data("mnist", "~/data", subset_percentage=0.01)
+            self.d = 7**2
+            self.n_classes = 10
 
         # generate sigma and alpha tabs
         sigma_tab = np.exp(np.linspace(np.log(self.sigma_min),
@@ -137,9 +148,10 @@ class Simulation:
         alpha_tab = np.linspace(self.alpha_min, self.alpha_max, self.n_alpha)
 
         # Generate initialization that will be shared among simulations
-        initialization_noise = self.w_init_std * \
-            torch.randn(size=(self.n_classes,self.d)).to(device)
-        initialization = means.float().to(device) + initialization_noise
+        #initialization_noise = self.w_init_std * \
+        #    torch.randn(size=(self.n_classes,self.d)).to(device)
+        #initialization = means.float().to(device) + initialization_noise
+        initialization = None
 
         # Initialize some logging
         losses = []

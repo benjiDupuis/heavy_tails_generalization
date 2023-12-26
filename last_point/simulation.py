@@ -12,6 +12,7 @@ from last_point.model import fcnn
 from last_point.utils import accuracy
 from levy.levy import generate_levy_for_simulation
 
+from data.dataset import get_full_batch_data
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
 from last_point.model import fcnn, SinusFCNN
 
@@ -44,10 +45,10 @@ def run_one_simulation(horizon: int,
     y_train = data[1].to(device)
     x_val = data[2].to(device)
     y_val = data[3].to(device)
-    assert x_train.ndim == 2
-    assert y_train.ndim == 1
-    assert x_val.ndim == 2
-    assert y_val.ndim == 1
+    #assert x_train.ndim == 2
+    #assert y_train.ndim == 1
+    #assert x_val.ndim == 2
+    #assert y_val.ndim == 1
     assert x_train.shape[0] == y_train.shape[0]
     assert x_train.shape[1] == x_val.shape[1]
 
@@ -200,24 +201,37 @@ def run_and_save_one_simulation(result_dir: str,
                         id_sigma: int = 0,
                         id_alpha: int = 0,
                         compute_gradient: bool = False,
-                        bias: bool = False):
+                        bias: bool = False,
+                        data_type: str = "mnist",
+                        subset: float = 0.01,
+                        resize: int = 14):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
     
     # Generate the data
     # First the seed is set, so that each training will have the same data
-    np.random.seed(data_seed)
-    torch.manual_seed(data_seed)
-    n_per_class_train = n // n_classes
-    x_train, y_train, means = sample_standard_gaussian_mixture(d, n_per_class_train)
-    n_per_class_val = n_val // n_classes
-    x_val, y_val, _ = sample_standard_gaussian_mixture(d, n_per_class_val, 
-                                                        random_centers=False, 
-                                                        means_deterministic=means)
+    if data_type == "gaussian":
+        np.random.seed(data_seed)
+        torch.manual_seed(data_seed)
+        n_per_class_train = n // n_classes
+        x_train, y_train, means = sample_standard_gaussian_mixture(d, n_per_class_train)
+        n_per_class_val = n_val // n_classes
+        x_val, y_val, _ = sample_standard_gaussian_mixture(d, n_per_class_val, 
+                                                            random_centers=False, 
+                                                            means_deterministic=means)
 
-    data = (x_train, y_train, x_val, y_val)
-    print(data)
+        data = (x_train, y_train, x_val, y_val)
+        print(data)
+
+    elif data_type == "mnist":
+        np.random.seed(data_seed)
+        torch.manual_seed(data_seed)
+        data = get_full_batch_data("mnist", "~/data", subset_percentage=subset, resize=resize)
+
+        # adapt the input dimension
+        d = resize**2
+        n_classes = 10
 
     # TODO remove this hack
     initialization = None 

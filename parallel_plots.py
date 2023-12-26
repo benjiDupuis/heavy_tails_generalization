@@ -199,7 +199,7 @@ def analyze_one_seed(json_path: str):
         normalization_tab[results[k]["id_alpha"]] = constant
 
         bound_tab.append(np.sqrt(constant * gradient / (n * decay * np.power(sigma, alpha))))
-        acc_bound_tab.append(np.sqrt(constant / (n * np.power(sigma, alpha))))
+        acc_bound_tab.append(np.sqrt(constant / (n * decay * np.power(sigma, alpha))))
 
     # Plot everything
     output_dir = json_path.parent.parent / (json_path.parent.stem + "_figures")
