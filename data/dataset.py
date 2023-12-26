@@ -1,3 +1,4 @@
+import fire
 import numpy as np
 import torch
 from loguru import logger
@@ -24,6 +25,39 @@ def get_data_simple(dataset, path, bs_train, bs_eval, subset=None, resize=None):
         bs_eval,
         resize
     ), subset_percentage=subset)
+
+
+@torch.no_grad()
+def recover_eval_tensors(dataloader):
+
+    final_x, final_y = [], []
+
+    for x, y in dataloader:
+
+        final_x.append(x)
+        final_y.append(y)
+
+    return torch.cat(final_x, 0), torch.cat(final_y, 0)
+
+
+def get_full_batch_data(dataset: str,
+                         path: str,
+                          subset_percentage: float = 0.01,
+                          resize: float = 7):
+
+    train_loader, test_loader, *_ = get_data(DataOptions(
+        dataset,
+        path,
+        100,
+        100,
+        resize
+    ), subset_percentage=subset_percentage)
+
+    x_train, y_train = recover_eval_tensors(train_loader)
+    x_test, y_test = recover_eval_tensors(test_loader)
+
+    return (x_train, y_train, x_test, y_test)
+
 
 
 def get_data(args: DataOptions, subset_percentage: float = None):
@@ -143,3 +177,12 @@ def get_data(args: DataOptions, subset_percentage: float = None):
     )
 
     return train_loader, test_loader_eval, train_loader_eval, num_classes
+
+
+if __name__ == "__main__":
+
+    def test_function():
+        _ = get_data_simple("mnist", "~/data/", 1, 1)
+        
+
+    fire.Fire(test_function)

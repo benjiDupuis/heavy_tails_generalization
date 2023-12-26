@@ -3,7 +3,7 @@ import fire
 from last_point.experiments import Simulation
 
 def main(n=1000,
-          d = 10, 
+          d = 2, 
           n_val = 1000,
           eta = 0.001,\
           horizon = 20000,
@@ -12,12 +12,12 @@ def main(n=1000,
           n_alpha: int = 1, 
           init_std: float = 1.,
           normalization: bool = False,
-          sigma_min = 1.,        
+          sigma_min = 0.1,        
           sigma_max = 1.,
           decay = 0.,
           alpha_min = 1.8,
           alpha_max = 2.,
-          depth: int = 2,
+          depth: int = 0,
           width: int = 50):
 
     simulator = Simulation(d, n, n_sigma=n_sigma, n_alpha=n_alpha,\
