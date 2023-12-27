@@ -90,9 +90,13 @@ def generate_base_command(module, flags: Optional[Dict[str, Any]] = None, unbuff
                 if setting:
                     base_cmd += f" --{flag}"
                     # base_cmd += f" --{flag.replace('_', '-')}"
+            # Here we handle the case of lists
+            elif setting is not None and type(setting) == list:
+                    base_cmd += f" --{flag} " + ' '.join(setting)
             else:
                 base_cmd += f" --{flag}={setting}"
                 # base_cmd += f" --{flag.replace('_', '-')}={setting}"
+                
     return base_cmd
 
 

@@ -8,22 +8,24 @@ from torchvision import datasets, transforms
 
 class DataOptions:
 
-    def __init__(self, dataset, path, bs_train, bs_eval, resize=None):
+    def __init__(self, dataset, path, bs_train, bs_eval, resize=None, class_list=None):
         self.dataset = dataset
         self.path = path
         self.batch_size_train = bs_train
         self.batch_size_eval = bs_eval
         self.resize = resize
+        self.class_list = class_list
 
 
-def get_data_simple(dataset, path, bs_train, bs_eval, subset=None, resize=None):
+def get_data_simple(dataset, path, bs_train, bs_eval, subset=None, resize=None, class_list=None):
 
     return get_data(DataOptions(
         dataset,
         path,
         bs_train,
         bs_eval,
-        resize
+        resize,
+        class_list
     ), subset_percentage=subset)
 
 
@@ -43,18 +45,25 @@ def recover_eval_tensors(dataloader):
 def get_full_batch_data(dataset: str,
                          path: str,
                           subset_percentage: float = 0.01,
-                          resize: float = 7):
+                          resize: float = 28,
+                          class_list=None):
 
     train_loader, test_loader, *_ = get_data(DataOptions(
         dataset,
         path,
         100,
         100,
-        resize
+        resize,
+        class_list
     ), subset_percentage=subset_percentage)
 
     x_train, y_train = recover_eval_tensors(train_loader)
     x_test, y_test = recover_eval_tensors(test_loader)
+
+    logger.debug(f'{x_train.shape}')
+    logger.debug(f'{y_train.shape}')
+    logger.debug(f'{x_test.shape}')
+    logger.debug(f'{y_test.shape}')
 
     return (x_train, y_train, x_test, y_test)
 
@@ -121,41 +130,49 @@ def get_data(args: DataOptions, subset_percentage: float = None):
     n_tr = len(tr_data)
     n_te = len(te_data)
 
-    if subset_percentage is not None and subset_percentage < 1.:
+    if args.class_list is None:
+        class_list_keys = tr_data.class_to_idx.keys()
+        class_list = [tr_data.class_to_idx[k] for k in class_list_keys]
+        # TODO: improve this
+        # we assue that the classes of train ad test are the same
+    else:
+        class_list = args.class_list
+    logger.info(f"Used classes: {class_list}")
 
-        # We try to extract subsets equivalently in each class to keep them balanced
-        # Subset selection is performed only on the training set!!
+    # TODO: fix this subset 1 issue
+    if subset_percentage >= 1.:
+        logger.warning("subset 1 may be unstable")
 
-        assert subset_percentage > 0. and subset_percentage <= 1.
-        logger.warning(f"Using only {round(100. * subset_percentage, 2)}% of the {data_class} training set")
+    # We try to extract subsets equivalently in each class to keep them balanced
+    # Subset selection is performed only on the training set!!
 
-        selected_indices = torch.zeros(len(tr_data), dtype=torch.bool)
-        for cl in tr_data.class_to_idx.keys():
-            cl_idx = tr_data.class_to_idx[cl]
-            where_class = torch.where(torch.tensor(tr_data.targets) == cl_idx)[0]
-            sub_indices = (torch.rand(len(where_class)) < subset_percentage)
-            selected_indices[where_class[sub_indices]] = True
+    assert subset_percentage > 0. and subset_percentage <= 1.
+    logger.info(f"Using {round(100. * subset_percentage, 2)}% of the {data_class} training set")
 
-        tr_data = Subset(tr_data, selected_indices.nonzero().reshape(-1))
+    selected_indices = torch.zeros(len(tr_data), dtype=torch.bool)
+    for cl_idx in class_list:
+        where_class = torch.where(torch.tensor(tr_data.targets) == cl_idx)[0]
+        sub_indices = (torch.rand(len(where_class)) < subset_percentage)
+        selected_indices[where_class[sub_indices]] = True
 
-    subset_eval = (subset_percentage * n_tr) / n_te
+    tr_data = Subset(tr_data, selected_indices.nonzero().reshape(-1))
 
-    if subset_eval < 1.:
+    # TODO: this is hacky amd random, improve it  HACK
+    subset_eval = min(1., 5. * subset_percentage)
 
-        # We try to extract subsets equivalently in each class to keep them balanced
-        # Subset selection is performed only on the training set!!
+    # We try to extract subsets equivalently in each class to keep them balanced
+    # Subset selection is performed only on the training set!!
 
-        assert subset_eval > 0. and subset_eval <= 1.
-        logger.warning(f"Using only {round(100. * subset_eval, 2)}% of the {data_class} validation set")
+    assert subset_eval > 0. and subset_eval <= 1.
+    logger.info(f"Using only {round(100. * subset_eval, 2)}% of the {data_class} validation set")
 
-        selected_indices = torch.zeros(len(te_data), dtype=torch.bool)
-        for cl in te_data.class_to_idx.keys():
-            cl_idx = te_data.class_to_idx[cl]
-            where_class = torch.where(torch.tensor(te_data.targets) == cl_idx)[0]
-            sub_indices = (torch.rand(len(where_class)) < subset_eval)
-            selected_indices[where_class[sub_indices]] = True
+    selected_indices = torch.zeros(len(te_data), dtype=torch.bool)
+    for cl_idx in class_list:
+        where_class = torch.where(torch.tensor(te_data.targets) == cl_idx)[0]
+        sub_indices = (torch.rand(len(where_class)) < subset_eval)
+        selected_indices[where_class[sub_indices]] = True
 
-        te_data = Subset(te_data, selected_indices.nonzero().reshape(-1))
+    te_data = Subset(te_data, selected_indices.nonzero().reshape(-1))
 
     # get tr_loader for train/eval and te_loader for eval
     train_loader = torch.utils.data.DataLoader(
@@ -182,7 +199,6 @@ def get_data(args: DataOptions, subset_percentage: float = None):
 if __name__ == "__main__":
 
     def test_function():
-        _ = get_data_simple("mnist", "~/data/", 1, 1)
-        
+        _ = get_data_simple("mnist", "~/data/", 1, 1, subset=1., class_list = [1, 7])       
 
     fire.Fire(test_function)

@@ -54,7 +54,9 @@ def main(args_):
                                 args_.bias,
                                 args_.data_type,
                                 args_.subset,
-                                args_.resize
+                                args_.resize,
+                                args_.classes,
+                                args_.stopping
                                 )
 
 
@@ -93,9 +95,14 @@ if __name__ == '__main__':
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=1)
     parser.add_argument('--data_type', type=str, default="mnist")
+    parser.add_argument('--stopping', type=bool, default=False)
+
 
     parser.add_argument('--subset', type=float, default=0.01)
     parser.add_argument('--resize', type=int, default=14)
+    parser.add_argument('--classes', nargs='+', required=False, default=None) # classes used in training
+
+
 
 
 

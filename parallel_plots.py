@@ -48,10 +48,10 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     # plt.scatter(gen_tab, bound_tab)
     sc = plt.scatter(gen_tab,
                      bound_tab,
-                     c=sigma_values,
+                     c=np.log(sigma_values) / np.log(10.),
                      cmap=color_map)
-    cbar = plt.colorbar(sc, norm = matplotlib.colors.LogNorm())
-    cbar.set_label("sigma")
+    cbar = plt.colorbar(sc)
+    cbar.set_label("log(sigma)")
     if log_scale:
         plt.yscale("log")
         plt.xscale("log")
@@ -87,7 +87,7 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str):
     n_sigma = len(sigma_tab)
     n_alpha = len(alpha_tab)
 
-    logger.info(f"Saving all figures in {output_dir}") 
+    logger.info(f"Saving all figures in {output_dir}")
 
     for s in tqdm(range(n_sigma)):
 
@@ -150,6 +150,7 @@ def analyze_one_seed(json_path: str):
 
     # Collect sigma_tab, alpha_tab, and the generalization grids
     sigma_tab = np.zeros(n_sigma)
+    sigma_factor_tab = np.zeros(n_sigma)
     alpha_tab = np.zeros(n_alpha)
     normalization_tab = np.zeros(n_alpha)
     acc_gen_grid = np.zeros((n_sigma, n_alpha))
@@ -160,6 +161,7 @@ def analyze_one_seed(json_path: str):
     acc_bound_tab = []
     acc_tab = []
     sigma_values = []
+    sigma_factor_values = []
     alpha_values = []
     
 
@@ -167,8 +169,18 @@ def analyze_one_seed(json_path: str):
 
     for k in results.keys():
 
+        # Estimate the actual value of the bound
+        n = results[k]["n"]
+        # normalization_factor = results[k]["normalization_factor"]
+        alpha = results[k]["alpha"]
+        n_params = results[k]["n_params"]
+        sigma = results[k]["sigma"]  # true value, without normalization by the dim
+        sigma_factor = results[k]["sigma"] * np.sqrt(n_params)
+        gradient = results[k]["gradient_mean"]
+
         # TODO: this is ugly and suboptimal, find better
-        sigma_tab[results[k]["id_sigma"]] = results[k]["sigma"]
+        sigma_tab[results[k]["id_sigma"]] = sigma
+        sigma_factor_tab[results[k]["id_sigma"]] = sigma_factor
         alpha_tab[results[k]["id_alpha"]] = results[k]["alpha"]
 
         acc_gen_grid[
@@ -179,16 +191,9 @@ def analyze_one_seed(json_path: str):
         # Collect generalization error ad sigma and alpha, for colored plots
         gen_tab.append(results[k]["loss_generalization"])
         acc_tab.append(results[k]["acc_generalization"])
-        sigma_values.append(results[k]["sigma"])
+        sigma_values.append(sigma)
+        sigma_factor_values.append(sigma_factor)
         alpha_values.append(results[k]["alpha"])
-
-        # Estimate the actual value of the bound
-        n = results[k]["n"]
-        # normalization_factor = results[k]["normalization_factor"]
-        alpha = results[k]["alpha"]
-        sigma = results[k]["sigma"]
-        n_params = results[k]["n_params"]
-        gradient = results[k]["gradient_mean"]
 
         # in pytorch sgd, decay is the true decay, not post lr
         decay = results[k]["decay"]
@@ -205,10 +210,10 @@ def analyze_one_seed(json_path: str):
         output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving figures in {str(output_dir)}")
 
-    plot_one_seed(acc_gen_grid, sigma_tab, alpha_tab, str(output_dir))
+    plot_one_seed(acc_gen_grid, sigma_factor_tab, alpha_tab, str(output_dir))
     # plot_one_seed(acc_gen_grid / np.sqrt(normalization_tab[np.newaxis, :]), sigma_tab, alpha_tab, str(output_dir))
-    plot_bound(gen_tab, bound_tab, output_dir, sigma_values, alpha_values, log_scale=True)
-    plot_bound(acc_tab, bound_tab, output_dir, sigma_values, alpha_values, log_scale=True, stem="accuracy")
+    plot_bound(gen_tab, bound_tab, output_dir, sigma_factor_values, alpha_values, log_scale=True)
+    plot_bound(acc_tab, bound_tab, output_dir, sigma_factor_values, alpha_values, log_scale=True, stem="accuracy")
     
 
 if __name__ == "__main__":

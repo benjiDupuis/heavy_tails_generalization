@@ -10,7 +10,7 @@ from scipy.stats import kendalltau
 
 
 def granulated_kendall_from_json(json_path: str,
-                                 generalization_key: str = "acc_gap",
+                                 generalization_key: str = "acc_generalization",
                                  complexity_keys: List[str] = ["estimated_bound"],
                                  hyperparameters_keys: List[str] = ["sigma", "alpha"]):
 
