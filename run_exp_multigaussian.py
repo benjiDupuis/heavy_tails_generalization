@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--subset', type=float, default=0.01)
     parser.add_argument('--resize', type=int, default=14)
-    parser.add_argument('--classes', nargs='+', required=False, default=None) # classes used in training
+    parser.add_argument('--classes', nargs='+', required=False) # classes used in training
 
 
 

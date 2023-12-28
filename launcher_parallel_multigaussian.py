@@ -1,5 +1,6 @@
 import datetime
 import json
+import time
 
 from experiment_utils import generate_base_command, generate_run_commands, hash_dict, sample_flag, RESULT_DIR
 
@@ -36,6 +37,8 @@ def main(args_):
     alphas = list(np.linspace(args_.alpha_min, \
                               args_.alpha_max, \
                               args_.grid_size)) 
+
+    logger.debug(f'args_.classes: {args_.classes is None}')
     
     mode = args_.mode
     rds = np.random.RandomState(args_.seed)
@@ -68,6 +71,11 @@ def main(args_):
             'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
             'num_seeds_per_hparam', 'grid_size', 'seed',
             'date']]
+            
+            ######## HACK #######
+            # To avoid None arg error with the classes
+
+            #####################
 
             # randomly sample flags
             for flag in default_configs:
@@ -104,6 +112,7 @@ def main(args_):
                 exp_num+=1
 
     # submit jobs
+    logger.debug(command_list)
     generate_run_commands(command_list, 
                           num_gpus=args.num_gpus,
                             num_cpus=args.num_cpus, 
@@ -115,11 +124,13 @@ def main(args_):
 
 """
 Test Commmand
-PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1 --result_dir tests_directory 
+PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1 --result_dir tests_directory
 """
 
 
 if __name__ == '__main__':
+
+    SEED = int(str(time.time()).split(".")[1])
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--date', type=str, default=str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0])
@@ -135,21 +146,21 @@ if __name__ == '__main__':
     parser.add_argument('--alpha_min', type=float, default=1.4)
     parser.add_argument('--alpha_max', type=float, default=2.)
     parser.add_argument('--grid_size', type=int, default=10)
-    parser.add_argument('--seed', type=int, default=2)
-    parser.add_argument('--num_seeds_per_hparam', type=int, default=1)
+    parser.add_argument('--seed', type=int, default=SEED)
+    parser.add_argument('--num_seeds_per_hparam', type=int, default=1)    
 
     parser.add_argument('--result_dir', type=str, default=RESULT_DIR)
 
     # Parameters that are shared among all runs
     parser.add_argument('--horizon', type=int, default=10000)
     parser.add_argument('--d', type=int, default=4)
-    parser.add_argument('--eta', type=float, default=0.001)
+    parser.add_argument('--eta', type=float, default=0.01)
     parser.add_argument('--n', type=int, default=100)
     parser.add_argument('--n_val', type=int, default=100)
     parser.add_argument('--n_ergodic', type=int, default=5000)
     parser.add_argument('--n_classes', type=int, default=2)
-    parser.add_argument('--decay', type=float, default=0.01)
-    parser.add_argument('--depth', type=int, default=3)
+    parser.add_argument('--decay', type=float, default=0.0)
+    parser.add_argument('--depth', type=int, default=0)
     parser.add_argument('--width', type=int, default=50)
     parser.add_argument('--normalization', type=bool, default=False)
     parser.add_argument('--compute_gradients', type=int, default=1)
@@ -157,10 +168,14 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', type=str, default="mnist")
     parser.add_argument('--stopping', type=bool, default=False) # whether or not use the stopping criterion
 
+    # Additional option to vary the width
+    #parser.add_argument('--width_min', type=int, default=10)
+    #parser.add_argument('--width_max', type=int, default=100)
+
     # parameters used onlyfor mnist, or other image datasets
-    parser.add_argument('--subset', type=float, default=0.01)
+    parser.add_argument('--subset', type=float, default=0.1)
     parser.add_argument('--resize', type=int, default=28) # original size of mnist is 28
-    parser.add_argument('--classes', nargs='+', required=False, default=None) # classes used in training
+    parser.add_argument('--classes', nargs='+', required=False) # classes used in training
 
 
     args = parser.parse_args()

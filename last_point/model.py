@@ -141,6 +141,32 @@ class FCNN(NoisyGDModel):
         x = x.view(x.size(0), self.input_dim)
         x = self.fc(x)
         return x
+
+
+def fcnn_num_params(input_dim: int,
+         width: int = None,
+         depth: int = 2,
+         bias: bool = False,
+         n_classes = 2) -> int:
+
+    if depth == 0:
+
+        return LinearModel.num_params(
+            input_dim = input_dim,
+            bias = bias,
+            n_classes = n_classes
+        )
+    
+    else:
+        assert width is not None, "width must be provided for non linear models"
+
+        return FCNN.num_params(
+            depth = depth,
+            width = width,
+            input_dim = input_dim,
+            n_classes = n_classes,
+            bias = bias
+        )
     
 
 def fcnn(input_dim: int,
@@ -150,6 +176,7 @@ def fcnn(input_dim: int,
          n_classes = 2) -> NoisyGDModel:
     
     if depth == 0:
+
         return LinearModel(
             input_dim = input_dim,
             bias = bias,
@@ -157,7 +184,6 @@ def fcnn(input_dim: int,
         )
     
     else:
-
         assert width is not None, "width must be provided for non linear models"
 
         return FCNN(

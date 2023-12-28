@@ -11,12 +11,8 @@ todo:
 
 
 exps to do:
- - 3 layers 10 seeds / fine grid
- - 2 layers 10 seeds
- - correlation coefficients
- - MNIST
- - same things with sin networks
  - vary d ????
- - vary lambda ????
+ - hinge loss
+ - several seeds
 
-
+First step: Having the experiment working with a linear model, on both types of datasets, in both unparam and overparam regimes

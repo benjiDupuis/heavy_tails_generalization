@@ -15,7 +15,7 @@ from levy.levy import generate_levy_for_simulation
 
 from data.dataset import get_full_batch_data
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
-from last_point.model import fcnn, SinusFCNN
+from last_point.model import fcnn, fcnn_num_params
 
 
 def run_one_simulation(horizon: int, 
@@ -224,6 +224,8 @@ def run_and_save_one_simulation(result_dir: str,
     """
 
     # HACK to avoid parsing issue of the classes
+    logger.debug(f'classes is None {classes is None}')
+    logger.debug(f'classes: {classes}')
     if classes is not None:
         classes = [int(c) for c in classes]
     
@@ -249,14 +251,12 @@ def run_and_save_one_simulation(result_dir: str,
 
         # adapt the input dimension
         d = resize**2
-        n_classes = 10
+        n_classes = 10 if classes is not None else len(classes)
 
     # TODO remove this hack
     initialization = None 
 
-    # TODO: remove this hack
-    model_temp = fcnn(d, width, depth, bias, n_classes)
-    n_params = model_temp.params_number()
+    n_params = fcnn_num_params(d, width, depth, bias, n_classes)
 
     ######################################
     # We scale the value of sigma
@@ -309,6 +309,10 @@ def run_and_save_one_simulation(result_dir: str,
 
     bound = np.sqrt(K_constant * gradient_mean / (n * decay * np.power(sigma, alpha)))
 
+    # Correct value of n
+    n = data[0].shape[0]
+    n_val = data[2].shape[0]
+
     result_dict = {
         "horizon": horizon, 
         "input_dimension": d,
@@ -335,7 +339,8 @@ def run_and_save_one_simulation(result_dir: str,
         "n_params": n_params,
         "bias": bias,
         "estimated_bound": bound,
-        "converged": converged
+        "converged": converged,
+        'final_train_accuracy': accuracy_tab[-1][0].item()
     }
 
     result_dir = Path(result_dir)
