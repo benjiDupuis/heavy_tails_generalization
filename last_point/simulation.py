@@ -16,6 +16,7 @@ from levy.levy import generate_levy_for_simulation
 from data.dataset import get_full_batch_data
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
 from last_point.model import fcnn, fcnn_num_params
+from last_point.utils import robust_mean
 
 
 def run_one_simulation(horizon: int, 
@@ -153,8 +154,8 @@ def run_one_simulation(horizon: int,
 
     # Compute the estimated generalization at the end
     gen_tab = np.array(gen_tab)
-    generalization = gen_tab.mean()
-    gradient_mean = float(np.array(gradient_norm_list).mean()) if compute_gradients else "non_computed"
+    generalization = robust_mean(gen_tab)
+    gradient_mean = float(robust_mean(np.array(gradient_norm_list))) if compute_gradients else "non_computed"
 
     return float(generalization), loss_tab, accuracy_tab,\
           None, gradient_mean, converged
@@ -305,7 +306,7 @@ def run_and_save_one_simulation(result_dir: str,
     accuracy_error_tab_np = np.array([
         accuracy_error_tab[k][0] - accuracy_error_tab[k][1] for k in range(n_ergodic)
     ])
-    accuracy_error = float(100. * accuracy_error_tab_np.mean())
+    accuracy_error = float(100. * robust_mean(accuracy_error_tab_np))
 
     bound = np.sqrt(K_constant * gradient_mean / (n * decay * np.power(sigma, alpha)))
 

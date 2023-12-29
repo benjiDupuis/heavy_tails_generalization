@@ -63,4 +63,16 @@ def linear_regression(x_tab: np.ndarray,
         return num / den
     
 
-    
+
+def robust_mean(tab: np.ndarray,
+                quantile: float = 0.15) -> float:
+     
+    assert quantile > 0. and quantile < 0.5, quantile
+    assert tab.ndim == 1, tab.shape
+
+    low_quantile = np.quantile(tab, quantile)
+    high_quantile = np.quantile(tab, 1. - quantile)
+
+    indices = (tab >= low_quantile) * (tab <= high_quantile)
+
+    return tab[indices].mean()
