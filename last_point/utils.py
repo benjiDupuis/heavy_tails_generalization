@@ -85,9 +85,9 @@ def robust_mean(tab: np.ndarray,
 
 
 
-def poly_alpha(alpha: float) -> float: 
+def poly_alpha(alpha): 
 
-    if alpha == 2.:
+    if type(alpha) == float and alpha == 2.:
         # asymptotic development of gamma(1-s)
         # using Euler reflection formula
         # TODO: recheck this
