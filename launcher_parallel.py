@@ -4,12 +4,10 @@ import time
 
 from experiment_utils import generate_base_command, generate_run_commands, hash_dict, sample_flag, RESULT_DIR
 
-import run_exp_multigaussian
+import run_exp
 import argparse
 import numpy as np
 import copy
-import os
-import itertools
 from pathlib import Path
 from loguru import logger
 
@@ -33,10 +31,13 @@ def main(args_):
     
     sigmas = list(np.exp(np.linspace(np.log(args_.sigma_min), \
                                      np.log(args_.sigma_max), \
-                                     args_.grid_size)))
+                                     args_.n_sigma)))
     alphas = list(np.linspace(args_.alpha_min, \
                               args_.alpha_max, \
-                              args_.grid_size)) 
+                              args_.n_alpha)) 
+    widths = list(np.linspace(args_.width_min, \
+                              args_.width_max, \
+                              args_.n_width)) 
     
     mode = args_.mode
     rds = np.random.RandomState(args_.seed)
@@ -61,55 +62,57 @@ def main(args_):
 
     for s in range(len(sigmas)):
         for a in range(len(alphas)):
+            for w in range(len(widths)):
 
-            # transfer flags from the args
-            flags = copy.deepcopy(args.__dict__)
-            [flags.pop(key) for key in
-            ['num_cpus', 'num_gpus',\
-            'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
-            'num_seeds_per_hparam', 'grid_size', 'seed',
-            'date']]
-            
-            ######## HACK #######
-            # To avoid None arg error with the classes
-            # TODO: maybe do it for each class
-            if args_.classes is None:
-                flags.pop("classes")
-            #####################
+                # transfer flags from the args
+                flags = copy.deepcopy(args.__dict__)
+                [flags.pop(key) for key in
+                ['num_cpus', 'num_gpus',\
+                'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
+                'num_seeds_per_hparam', 'n_alpha', 'n_sigma' 'seed',
+                'date', 'n_width']]
+                
+                ######## HACK #######
+                # To avoid None arg error with the classes
+                # TODO: maybe do it for each class
+                if args_.classes is None:
+                    flags.pop("classes")
+                #####################
 
-            # randomly sample flags
-            for flag in default_configs:
-                if flag in search_ranges:
-                    flags[flag] = sample_flag(sample_spec=search_ranges[flag], rds=rds)
-                else:
-                    flags[flag] = default_configs[flag]
+                # randomly sample flags
+                for flag in default_configs:
+                    if flag in search_ranges:
+                        flags[flag] = sample_flag(sample_spec=search_ranges[flag], rds=rds)
+                    else:
+                        flags[flag] = default_configs[flag]
 
-            flags['sigma'] = sigmas[s]
-            flags['alpha'] = alphas[a]
-            flags['id_sigma'] = s
-            flags['id_alpha'] = a
+                flags['sigma'] = sigmas[s]
+                flags['alpha'] = alphas[a]
+                flags['width'] = widths[w]
+                flags['id_sigma'] = s
+                flags['id_alpha'] = a
 
-            for j in range(args.num_seeds_per_hparam):
+                for j in range(args.num_seeds_per_hparam):
 
-                np.random.seed(init_seeds[j])
+                    np.random.seed(init_seeds[j])
 
-                data_seed = np.random.randint(1000)
-                model_seed = np.random.randint(1000)
+                    data_seed = np.random.randint(1000)
+                    model_seed = np.random.randint(1000)
 
-                flags['data_seed'] = data_seed
-                flags['model_seed'] = model_seed
+                    flags['data_seed'] = data_seed
+                    flags['model_seed'] = model_seed
 
-                run_results_folder = exp_path / str(init_seeds[j])
-                if not run_results_folder.is_dir():
-                    run_results_folder.mkdir(parents=True, exist_ok=True)
-                logger.info(f"{str(run_results_folder)}_sigma_{sigmas[s]}_alpha_{alphas[a]}")
+                    run_results_folder = exp_path / str(init_seeds[j])
+                    if not run_results_folder.is_dir():
+                        run_results_folder.mkdir(parents=True, exist_ok=True)
+                    logger.info(f"{str(run_results_folder)}_sigma_{sigmas[s]}_alpha_{alphas[a]}_width_{widths[w]}")
 
-                flags['result_dir'] = str(run_results_folder)
+                    flags['result_dir'] = str(run_results_folder)
 
-                cmd = generate_base_command(run_exp_multigaussian,
-                                             flags=dict(**flags))
-                command_list.append(cmd)
-                exp_num+=1
+                    cmd = generate_base_command(run_exp,
+                                                flags=dict(**flags))
+                    command_list.append(cmd)
+                    exp_num+=1
 
     # submit jobs
     generate_run_commands(command_list, 
@@ -123,7 +126,7 @@ def main(args_):
 
 """
 Test Commmand
-PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --grid_size 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1 --result_dir tests_directory
+PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --n_sigma 2 --n_alpha 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 1 --horizon 10 --compute_gradients 1 --result_dir  --width_max 100 --n_width 2 
 """
 
 
@@ -139,28 +142,35 @@ if __name__ == '__main__':
     parser.add_argument('--num_cpus', type=int, default=15)
     parser.add_argument('--num_gpus', type=int, default=0)
 
-    # Parameters which are launcher specific
-    parser.add_argument('--sigma_min', type=float, default=30.)
-    parser.add_argument('--sigma_max', type=float, default=100.)
+    # Parameters varying during the experiment
+    parser.add_argument('--sigma_min', type=float, default=1.)
+    parser.add_argument('--sigma_max', type=float, default=20.)
     parser.add_argument('--alpha_min', type=float, default=1.7)
     parser.add_argument('--alpha_max', type=float, default=2.)
-    parser.add_argument('--grid_size', type=int, default=10)
+    parser.add_argument('--width_min', type=int, default=50)
+    parser.add_argument('--width_max', type=int, default=300)
+    parser.add_argument('--n_sigma', type=int, default=1)
+    parser.add_argument('--n_alpha', type=int, default=10)
+    parser.add_argument('--n_width', type=int, default=10)
+
+    # Parameters which are launcher specific
+    # parser.add_argument('--grid_size', type=int, default=10)
     parser.add_argument('--seed', type=int, default=SEED)
-    parser.add_argument('--num_seeds_per_hparam', type=int, default=10)    
+    parser.add_argument('--num_seeds_per_hparam', type=int, default=1)    
 
     parser.add_argument('--result_dir', type=str, default=RESULT_DIR)
 
     # Parameters that are shared among all runs
-    parser.add_argument('--horizon', type=int, default=30000)
+    parser.add_argument('--horizon', type=int, default=10000)
     parser.add_argument('--d', type=int, default=4)
     parser.add_argument('--eta', type=float, default=0.01)
     parser.add_argument('--n', type=int, default=100)
     parser.add_argument('--n_val', type=int, default=100)
-    parser.add_argument('--n_ergodic', type=int, default=5000)
+    parser.add_argument('--n_ergodic', type=int, default=2000)
     parser.add_argument('--n_classes', type=int, default=2)
     parser.add_argument('--decay', type=float, default=0.001)
-    parser.add_argument('--depth', type=int, default=0)
-    parser.add_argument('--width', type=int, default=50)
+    parser.add_argument('--depth', type=int, default=1)
+    # parser.add_argument('--width', type=int, default=50)
     parser.add_argument('--normalization', type=bool, default=False)
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=0)

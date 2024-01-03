@@ -40,8 +40,8 @@ def plot_dimension_dependence(output_dir: str = "paper"):
     plt.xlim(1., 2.)
     plt.ylim(0., 1.5)
 
-    plt.plot(alphas, np.ones(100), "--", color="gray")
-    plt.plot(alphas, 0.5 * np.ones(100), "--", color="red", label="max. value for convergence in overparameterized regime")
+    plt.plot(alphas, 0.5 * np.ones(100), "--", color="gray")
+    plt.plot(alphas, np.ones(100), "--", color="red", label="max. value for convergence in overparameterized regime")
     plt.plot(alphas, 1.5 * np.ones(100), "--", color="gray")
 
     plt.plot(alphas, 0.5 + alphas / 2., color = "k", label="Raj et al.")
@@ -49,7 +49,6 @@ def plot_dimension_dependence(output_dir: str = "paper"):
     plt.plot(alphas, 2. - alphas / 2., "--", color = "g", label=r"Ours if $C\propto \sqrt{d}$")
 
     plt.plot(2. * np.ones(100), np.linspace(0., 1., 100), color="b", label="Known limit for Langevin dynamics")
-
 
     plt.legend()
 

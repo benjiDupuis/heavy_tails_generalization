@@ -12,6 +12,69 @@ from last_point.utils import linear_regression, all_linear_regression
 from last_point.simulation import asymptotic_constant
 from last_point.utils import poly_alpha
 
+
+def plot_alpha_dimension_regression(json_path: str):
+    """
+    json_path should be the result of only one seed here
+    """
+    json_path = Path(json_path)
+    assert json_path.exists(), str(json_path)
+
+    with open(str(json_path), "r") as json_file:
+        results = json.load(json_file)
+
+    num_exp = len(results.keys())
+    logger.info(f"Found {num_exp} experiments")
+
+    alpha_dict = {}
+
+    for key in tqdm(results.keys()):
+
+        if results[key]["id_alpha"] not in alpha_dict.keys():
+            alpha_dict[results[key]["id_alpha"]] = {
+                "alpha": results[key]["alpha"],
+                "n_params": [],
+                "gen": []
+            }
+
+        alpha_dict[results[key]["id_alpha"]]["n_params"].append(
+            results[key]["n_params"]
+        )
+        alpha_dict[results[key]["id_alpha"]]["gen"].append(
+            results[key]["acc_generalization"]
+        )
+
+    alpha_tab = []
+    reg_tab = []
+    
+    for a in tqdm(alpha_dict.keys()):
+
+        alpha_tab.append(alpha_dict[a]["alpha"])
+        reg, _ = linear_regression(
+            np.array(alpha_dict[a]["n_params"]),
+            np.array(alpha_dict[a]["gen"])
+        )
+        reg_tab.append(2. - 4. * reg)
+
+    alpha_tab = np.array(alpha_tab)
+    reg_tab = np.array(reg_tab)
+
+    plt.figure()   
+    alphas = np.linspace(np.min(alpha_tab), np.max(alpha_tab), 100)
+    plt.plot(alphas, alphas, color="r", label=r"Ground truth $\alpha$")
+    plt.scatter(alpha_tab, reg_tab, color="k", label=r"Estimated $\alpha$")
+
+    output_dir = json_path.parent.parent / (json_path.parent.stem + "_figures")
+    if not output_dir.is_dir():
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_path = (output_dir / ("alpha_regression_from_dimension")).with_suffix(".png")
+    logger.info(f"Saving a bound plot in {str(output_path)}")
+    plt.savefig(str(output_path))
+    plt.close()
+
+
+
 def plot_bound(gen_tab, bound_tab, output_dir: str,
                 sigma_values, alpha_values,
                     log_scale: bool = True, stem: str=""):
@@ -213,10 +276,20 @@ def analyze_one_seed(json_path: str):
     # plot_one_seed(acc_gen_grid / np.sqrt(normalization_tab[np.newaxis, :]), sigma_tab, alpha_tab, str(output_dir))
     plot_bound(gen_tab, bound_tab, output_dir, sigma_factor_values, alpha_values, log_scale=True)
     plot_bound(acc_tab, acc_bound_tab, output_dir, sigma_factor_values, alpha_values, log_scale=True, stem="accuracy")
-    
+
+
+def main(json_path: str, mode: str="all_plots"):
+
+    if mode == "all_plots":
+        analyze_one_seed(json_path)
+    elif mode == "dim_regression":
+        plot_alpha_dimension_regression(json_path)
+    else:
+        raise NotImplementedError()
+ 
 
 if __name__ == "__main__":
-     fire.Fire(analyze_one_seed)
+     fire.Fire(main)
 
 
 
