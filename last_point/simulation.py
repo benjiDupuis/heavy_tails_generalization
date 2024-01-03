@@ -16,7 +16,7 @@ from levy.levy import generate_levy_for_simulation
 from data.dataset import get_full_batch_data
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
 from last_point.model import fcnn, fcnn_num_params
-from last_point.utils import robust_mean
+from last_point.utils import robust_mean, poly_alpha
 
 
 def run_one_simulation(horizon: int, 
@@ -121,7 +121,7 @@ def run_one_simulation(horizon: int,
 
         # Validation if we are after the time horizon
         loss_val = None
-        if k >= horizon or converged:
+        if k >= horizon or (converged and stopping):
             with torch.no_grad():
                 out_val = model(x_val)
                 loss_val = crit(out_val, y_val).item()
@@ -129,7 +129,7 @@ def run_one_simulation(horizon: int,
                 accuracy_val = None
 
         with torch.no_grad():
-            if k >= horizon or converged:
+            if k >= horizon or (converged and stopping):
                 gen_tab.append(loss_val - loss.item())
                 accuracy_val = accuracy(out_val, y_val)
                 accuracy_tab.append((accuracy_train, accuracy_val))
@@ -141,7 +141,7 @@ def run_one_simulation(horizon: int,
         # Gradient step, put there to ensure initial acc are not corrupted
         opt.step()
 
-        if compute_gradients and (k >= horizon or converged):
+        if compute_gradients and (k >= horizon or (converged and stopping)):
             with torch.no_grad():
                 gradient_norm_list.append(model.gradient_l2_squared_norm())
 
@@ -225,8 +225,6 @@ def run_and_save_one_simulation(result_dir: str,
     """
 
     # HACK to avoid parsing issue of the classes
-    logger.debug(f'classes is None {classes is None}')
-    logger.debug(f'classes: {classes}')
     if classes is not None:
         classes = [int(c) for c in classes]
     
@@ -252,7 +250,7 @@ def run_and_save_one_simulation(result_dir: str,
 
         # adapt the input dimension
         d = resize**2
-        n_classes = 10 if classes is not None else len(classes)
+        n_classes = 10 if classes is None else len(classes)
 
     # TODO remove this hack
     initialization = None 
@@ -308,11 +306,11 @@ def run_and_save_one_simulation(result_dir: str,
     ])
     accuracy_error = float(100. * robust_mean(accuracy_error_tab_np))
 
-    bound = np.sqrt(K_constant * gradient_mean / (n * decay * np.power(sigma, alpha)))
-
     # Correct value of n
     n = data[0].shape[0]
     n_val = data[2].shape[0]
+
+    bound = np.sqrt(K_constant * gradient_mean / (n * decay * np.power(sigma, alpha)))
 
     result_dict = {
         "horizon": horizon, 
@@ -341,7 +339,8 @@ def run_and_save_one_simulation(result_dir: str,
         "bias": bias,
         "estimated_bound": bound,
         "converged": converged,
-        'final_train_accuracy': accuracy_tab[-1][0].item()
+        'final_train_accuracy': accuracy_tab[-1][0].item(),
+        "acc_gen_normalized": accuracy_error / np.sqrt(poly_alpha(alpha))
     }
 
     result_dir = Path(result_dir)

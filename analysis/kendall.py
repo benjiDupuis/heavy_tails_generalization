@@ -9,16 +9,11 @@ from loguru import logger
 from scipy.stats import kendalltau
 
 
-def granulated_kendall_from_json(json_path: str,
+def granulated_kendalls_from_dict(results: dict,
                                  generalization_key: str = "acc_generalization",
                                  complexity_keys: List[str] = ["estimated_bound"],
                                  hyperparameters_keys: List[str] = ["sigma", "alpha"]):
 
-    if not Path(json_path).exists():
-        raise FileNotFoundError()
-
-    with open(json_path, "r") as json_file:
-        results = json.load(json_file)
     experiments = [k for k in results.keys() if len(results[k].keys()) > 0]
     logger.info(f"Found {len(experiments)} converged experiments")
 
@@ -76,16 +71,33 @@ def granulated_kendall_from_json(json_path: str,
         granulated_kendalls[complexity]["average granulated Kendall coefficient"] = granulated /\
             len(hyperparameters_keys)
 
-    # logger.info(f"Results: \n {json.dumps(granulated_kendalls, indent=2)}")
+        final_results = {
+        "granulated Kendalls": granulated_kendalls,
+        "Kendall tau": whole_kendall
+    }
+
+    return final_results
+
+
+def granulated_kendall_from_json(json_path: str,
+                                 generalization_key: str = "acc_generalization",
+                                 complexity_keys: List[str] = ["estimated_bound"],
+                                 hyperparameters_keys: List[str] = ["sigma", "alpha"]):
+
+    if not Path(json_path).exists():
+        raise FileNotFoundError()
+
+    with open(json_path, "r") as json_file:
+        results = json.load(json_file)
+    
+    final_results = granulated_kendalls_from_dict(results,
+                                                generalization_key,
+                                                complexity_keys,
+                                                hyperparameters_keys)
 
     output_path = Path(json_path).parent / "granulated_kendalls.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving results in {str(output_path)}")
-
-    final_results = {
-        "granulated Kendalls": granulated_kendalls,
-        "Kendall tau": whole_kendall
-    }
 
     with open(str(output_path), "w") as output_file:
         json.dump(final_results, output_file, indent=2)

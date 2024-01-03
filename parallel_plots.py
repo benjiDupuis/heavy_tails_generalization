@@ -8,31 +8,9 @@ import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
-from last_point.utils import linear_regression
+from last_point.utils import linear_regression, all_linear_regression
 from last_point.simulation import asymptotic_constant
-
-def all_linear_regression(
-                        gen_grid: np.ndarray,
-                        sigma_tab: np.ndarray,
-                        alpha_tab: np.ndarray) -> (np.ndarray, np.ndarray):
-        """
-        Returns the regression of the gen with respect to log(1/sigma), for each alpha
-        and the regression of the gen with respect to alpha, for each sigma
-        """
-        n_alpha = len(alpha_tab)
-        n_sigma = len(sigma_tab)
-
-        # Regression gen/log(1/sigma)
-        alpha_reg = np.zeros(n_alpha)
-        for a in range(n_alpha):
-            alpha_reg[a] = linear_regression(np.log(1./sigma_tab), gen_grid[:, a])
-
-        # Regression gen/alpha
-        correlation_reg = np.zeros(n_sigma)
-        for s in range(n_sigma):
-            correlation_reg[s] = linear_regression(alpha_tab, gen_grid[s, :])
-
-        return alpha_reg, correlation_reg
+from last_point.utils import poly_alpha
 
 def plot_bound(gen_tab, bound_tab, output_dir: str,
                 sigma_values, alpha_values,
@@ -78,7 +56,7 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     plt.close()
 
 
-def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str):
+def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_grid = None):
 
     output_dir = Path(output_dir)
     if not output_dir.is_dir():
@@ -92,8 +70,11 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str):
     for s in tqdm(range(n_sigma)):
 
         plt.figure()
-        plt.scatter(alpha_tab, gen_grid[s, :])          
-        plt.title(f'Generalization error for sigma = {sigma_tab[s]}')
+        if deviation_grid is not None:
+            plt.errorbar(alpha_tab, gen_grid[s, :], yerr=deviation_grid[s, :])
+        else:
+            plt.scatter(alpha_tab, gen_grid[s, :])          
+        plt.title(f'Generalization error for sigma = {sigma_tab[s]}')            
 
         # Saving the figure
         fig_name = (f"sigma_{sigma_tab[s]}").replace(".","_")
@@ -104,10 +85,11 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str):
     for a in tqdm(range(n_alpha)):
 
             plt.figure()
-            plt.scatter(sigma_tab, gen_grid[:, a])
-            plt.xscale("log")
-            # plt.ylim(0., 100.)
-            # plt.yscale("log")          
+            if deviation_grid is not None:
+                plt.errorbar(sigma_tab, gen_grid[:, a], yerr=deviation_grid[:, a])
+            else:
+                plt.scatter(sigma_tab, gen_grid[:, a])
+            plt.xscale("log")        
             plt.title(f'Generalization error for alpha = {alpha_tab[a]}')
 
             # Saving the figure
@@ -130,7 +112,8 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str):
         plt.title("Regression of alpha from the generalization bound")
         plt.savefig(str(alpha_reg_path))
         plt.close()
-
+    else:
+        logger.warning("Linear regression did not work, probably due to negative generalization values")
 
 
 def analyze_one_seed(json_path: str):
@@ -144,6 +127,9 @@ def analyze_one_seed(json_path: str):
     num_exp = len(results.keys())
     logger.info(f"Found {num_exp} experiments")
 
+    example_key = list(results.keys())[0]
+    deviations: bool = ("acc_generalization_deviation" in list(results[example_key].keys()))
+
     # Collect n_alpha and n_sigma
     n_sigma = 1 + max(results[k]["id_sigma"] for k in results.keys())
     n_alpha = 1 + max(results[k]["id_alpha"] for k in results.keys())
@@ -154,7 +140,8 @@ def analyze_one_seed(json_path: str):
     alpha_tab = np.zeros(n_alpha)
     normalization_tab = np.zeros(n_alpha)
     acc_gen_grid = np.zeros((n_sigma, n_alpha))
-
+    gradient_grid = np.zeros((n_sigma, n_alpha))
+    acc_gen_grid_deviation = np.zeros((n_sigma, n_alpha)) if deviations else None 
 
     gen_tab = []
     bound_tab = []
@@ -188,6 +175,18 @@ def analyze_one_seed(json_path: str):
             results[k]["id_alpha"]
         ] = results[k]["acc_generalization"]
 
+        gradient_grid[
+            results[k]["id_sigma"],
+            results[k]["id_alpha"]
+        ] = results[k]["gradient_mean"]
+
+        if deviations:
+            acc_gen_grid_deviation[
+                    results[k]["id_sigma"],
+                    results[k]["id_alpha"]
+                ] = results[k]["acc_generalization_deviation"]
+
+
         # Collect generalization error ad sigma and alpha, for colored plots
         gen_tab.append(results[k]["loss_generalization"])
         acc_tab.append(results[k]["acc_generalization"])
@@ -201,8 +200,8 @@ def analyze_one_seed(json_path: str):
         constant = asymptotic_constant(alpha, n_params)
         normalization_tab[results[k]["id_alpha"]] = constant
 
-        bound_tab.append(np.sqrt(constant * gradient / (n * decay * np.power(sigma, alpha))))
-        acc_bound_tab.append(np.sqrt(constant / (n * decay * np.power(sigma, alpha))))
+        bound_tab.append(np.sqrt(constant/ (n * decay * np.power(sigma, alpha))))
+        acc_bound_tab.append(np.sqrt(constant * gradient / (n * decay * np.power(sigma, alpha))))
 
     # Plot everything
     output_dir = json_path.parent.parent / (json_path.parent.stem + "_figures")
@@ -210,10 +209,10 @@ def analyze_one_seed(json_path: str):
         output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving figures in {str(output_dir)}")
 
-    plot_one_seed(acc_gen_grid, sigma_factor_tab, alpha_tab, str(output_dir))
+    plot_one_seed(acc_gen_grid, sigma_factor_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)
     # plot_one_seed(acc_gen_grid / np.sqrt(normalization_tab[np.newaxis, :]), sigma_tab, alpha_tab, str(output_dir))
     plot_bound(gen_tab, bound_tab, output_dir, sigma_factor_values, alpha_values, log_scale=True)
-    plot_bound(acc_tab, bound_tab, output_dir, sigma_factor_values, alpha_values, log_scale=True, stem="accuracy")
+    plot_bound(acc_tab, acc_bound_tab, output_dir, sigma_factor_values, alpha_values, log_scale=True, stem="accuracy")
     
 
 if __name__ == "__main__":

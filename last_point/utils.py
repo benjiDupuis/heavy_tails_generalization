@@ -1,5 +1,8 @@
 import numpy as np
 import torch
+from loguru import logger
+from scipy.special import gamma
+
 
 class LogisticLoss():
 
@@ -65,14 +68,63 @@ def linear_regression(x_tab: np.ndarray,
 
 
 def robust_mean(tab: np.ndarray,
-                quantile: float = 0.15) -> float:
+                quantile_up: float = 0.15,
+                quantile_low: float = 0.) -> float:
      
-    assert quantile > 0. and quantile < 0.5, quantile
+    assert quantile_up >= 0. and quantile_up < 0.5, quantile_up
+    assert quantile_low >= 0. and quantile_low < 0.5, quantile_low
+
     assert tab.ndim == 1, tab.shape
 
-    low_quantile = np.quantile(tab, quantile)
-    high_quantile = np.quantile(tab, 1. - quantile)
+    low_quantile = np.quantile(tab, quantile_low)
+    high_quantile = np.quantile(tab, 1. - quantile_up)
 
     indices = (tab >= low_quantile) * (tab <= high_quantile)
 
     return tab[indices].mean()
+
+
+
+def poly_alpha(alpha: float) -> float: 
+
+    if alpha == 2.:
+        # asymptotic development of gamma(1-s)
+        # using Euler reflection formula
+        # TODO: recheck this
+        num_alpha = 2.
+    else:
+        num_alpha = (2. - alpha) * gamma(1. - alpha / 2.)
+
+    den_alpha = alpha * np.power(2., alpha / 2.)
+
+    return num_alpha / den_alpha
+
+
+
+def all_linear_regression(
+                        gen_grid: np.ndarray,
+                        sigma_tab: np.ndarray,
+                        alpha_tab: np.ndarray,
+                        sigma_low: float = 0.) -> (np.ndarray, np.ndarray):
+        """
+        Returns the regression of the gen with respect to log(1/sigma), for each alpha
+        and the regression of the gen with respect to alpha, for each sigma
+        """
+        n_alpha = len(alpha_tab)
+        n_sigma = len(sigma_tab)
+
+        # Regression gen/log(1/sigma)
+        alpha_reg = np.zeros(n_alpha)
+        for a in range(n_alpha):
+            indices = (gen_grid[:, a] > 0.) * (sigma_tab > sigma_low)
+
+            corrected_gen = np.log(gen_grid[indices, a])
+            reg = linear_regression(np.log(1./sigma_tab[indices]), corrected_gen)
+            alpha_reg[a] = 2. * reg if reg is not None else None
+
+        # Regression gen/alpha
+        correlation_reg = np.zeros(n_sigma)
+        for s in range(n_sigma):
+            correlation_reg[s] = linear_regression(alpha_tab, gen_grid[s, :])
+
+        return alpha_reg, correlation_reg
