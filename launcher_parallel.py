@@ -37,7 +37,7 @@ def main(args_):
                               args_.n_alpha)) 
     widths = list(np.linspace(args_.width_min, \
                               args_.width_max, \
-                              args_.n_width)) 
+                              args_.n_width, dtype=np.int64)) 
     
     mode = args_.mode
     rds = np.random.RandomState(args_.seed)
@@ -58,7 +58,7 @@ def main(args_):
         json.dump(args_.__dict__, exp_file, indent=2)
 
     command_list = []
-    exp_num = 0
+    exp_num = 0 # Count the total number of exps that have been launched
 
     for s in range(len(sigmas)):
         for a in range(len(alphas)):
@@ -69,8 +69,8 @@ def main(args_):
                 [flags.pop(key) for key in
                 ['num_cpus', 'num_gpus',\
                 'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
-                'num_seeds_per_hparam', 'n_alpha', 'n_sigma' 'seed',
-                'date', 'n_width']]
+                'num_seeds_per_hparam', 'n_alpha', 'n_sigma', 'seed',
+                'date', 'n_width', 'width_min', 'width_max']]
                 
                 ######## HACK #######
                 # To avoid None arg error with the classes
@@ -122,11 +122,13 @@ def main(args_):
                             promt=False,
                             long=args_.long)
 
+    logger.info(f"Launched a total of {exp_num} experiments")
+
 
 
 """
 Test Commmand
-PYTHONPATH=$PWD python launcher_parallel_multigaussian.py --n_sigma 2 --n_alpha 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 1 --horizon 10 --compute_gradients 1 --result_dir  --width_max 100 --n_width 2 
+PYTHONPATH=$PWD python launcher_parallel.py --n_sigma 2 --n_alpha 2 --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1 --width_max 100 --n_width 2 --result_dir tests_directory --num_seeds_per_hparam 1
 """
 
 
@@ -143,38 +145,37 @@ if __name__ == '__main__':
     parser.add_argument('--num_gpus', type=int, default=0)
 
     # Parameters varying during the experiment
-    parser.add_argument('--sigma_min', type=float, default=1.)
+    parser.add_argument('--sigma_min', type=float, default=0.5)
     parser.add_argument('--sigma_max', type=float, default=20.)
-    parser.add_argument('--alpha_min', type=float, default=1.7)
+    parser.add_argument('--alpha_min', type=float, default=1.6)
     parser.add_argument('--alpha_max', type=float, default=2.)
-    parser.add_argument('--width_min', type=int, default=50)
+    parser.add_argument('--width_min', type=int, default=200)
     parser.add_argument('--width_max', type=int, default=300)
-    parser.add_argument('--n_sigma', type=int, default=1)
+    parser.add_argument('--n_sigma', type=int, default=10)
     parser.add_argument('--n_alpha', type=int, default=10)
-    parser.add_argument('--n_width', type=int, default=10)
+    parser.add_argument('--n_width', type=int, default=1)
 
     # Parameters which are launcher specific
     # parser.add_argument('--grid_size', type=int, default=10)
     parser.add_argument('--seed', type=int, default=SEED)
-    parser.add_argument('--num_seeds_per_hparam', type=int, default=1)    
+    parser.add_argument('--num_seeds_per_hparam', type=int, default=10)    
 
     parser.add_argument('--result_dir', type=str, default=RESULT_DIR)
 
     # Parameters that are shared among all runs
     parser.add_argument('--horizon', type=int, default=10000)
-    parser.add_argument('--d', type=int, default=4)
+    parser.add_argument('--d', type=int, default=10)
     parser.add_argument('--eta', type=float, default=0.01)
-    parser.add_argument('--n', type=int, default=100)
-    parser.add_argument('--n_val', type=int, default=100)
+    parser.add_argument('--n', type=int, default=1000)
+    parser.add_argument('--n_val', type=int, default=1000)
     parser.add_argument('--n_ergodic', type=int, default=2000)
     parser.add_argument('--n_classes', type=int, default=2)
     parser.add_argument('--decay', type=float, default=0.001)
     parser.add_argument('--depth', type=int, default=1)
-    # parser.add_argument('--width', type=int, default=50)
     parser.add_argument('--normalization', type=bool, default=False)
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=0)
-    parser.add_argument('--data_type', type=str, default="mnist")
+    parser.add_argument('--data_type', type=str, default="gaussian")
     parser.add_argument('--stopping', type=int, default=1) # whether or not use the stopping criterion
 
     # Additional option to vary the width

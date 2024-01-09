@@ -50,9 +50,9 @@ def plot_alpha_dimension_regression(json_path: str):
     for a in tqdm(alpha_dict.keys()):
 
         alpha_tab.append(alpha_dict[a]["alpha"])
-        reg, _ = linear_regression(
-            np.array(alpha_dict[a]["n_params"]),
-            np.array(alpha_dict[a]["gen"])
+        reg = linear_regression(
+            np.array(np.log(np.array(alpha_dict[a]["n_params"]))),
+            np.array(np.log(np.array(alpha_dict[a]["gen"])))
         )
         reg_tab.append(2. - 4. * reg)
 
@@ -96,7 +96,7 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     if log_scale:
         plt.yscale("log")
         plt.xscale("log")
-    plt.title("estimated bound versus generalization")
+    # plt.title("estimated bound versus generalization")
     logger.info(f"Saving a bound plot in {str(output_path)}")
     plt.savefig(str(output_path))
     plt.close()
@@ -113,7 +113,7 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     if log_scale:
         plt.yscale("log")
         plt.xscale("log")
-    plt.title("estimated bound versus generalization")
+    # plt.title("estimated bound versus generalization")
     logger.info(f"Saving a bound plot in {str(output_path)}")
     plt.savefig(str(output_path))
     plt.close()
@@ -137,7 +137,7 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
             plt.errorbar(alpha_tab, gen_grid[s, :], yerr=deviation_grid[s, :])
         else:
             plt.scatter(alpha_tab, gen_grid[s, :])          
-        plt.title(f'Generalization error for sigma = {sigma_tab[s]}')            
+        # plt.title(f'Generalization error for sigma = {sigma_tab[s]}')            
 
         # Saving the figure
         fig_name = (f"sigma_{sigma_tab[s]}").replace(".","_")
@@ -153,7 +153,7 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
             else:
                 plt.scatter(sigma_tab, gen_grid[:, a])
             plt.xscale("log")        
-            plt.title(f'Generalization error for alpha = {alpha_tab[a]}')
+            # plt.title(f'Generalization error for alpha = {alpha_tab[a]}')
 
             # Saving the figure
             fig_name = (f"alpha_{alpha_tab[a]}").replace(".","_")
@@ -172,7 +172,7 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
         plt.figure()
         plt.plot(np.linspace(1,2, 100), np.linspace(1,2,100), color = "r")
         plt.scatter(alpha_tab, alpha_reg)
-        plt.title("Regression of alpha from the generalization bound")
+        # plt.title("Regression of alpha from the generalization bound")
         plt.savefig(str(alpha_reg_path))
         plt.close()
     else:
@@ -259,15 +259,17 @@ def analyze_one_seed(json_path: str):
 
         # in pytorch sgd, decay is the true decay, not post lr
         decay = results[k]["decay"]
+        horizon = results[k]["horizon"]
+        lr = results[k]["eta"]
 
         constant = asymptotic_constant(alpha, n_params)
         normalization_tab[results[k]["id_alpha"]] = constant
 
-        bound_tab.append(np.sqrt(constant/ (n * decay * np.power(sigma, alpha))))
-        acc_bound_tab.append(np.sqrt(constant * gradient / (n * decay * np.power(sigma, alpha))))
+        bound_tab.append(np.sqrt(constant * gradient * horizon * lr / (n * np.power(sigma, alpha))))
+        acc_bound_tab.append(np.sqrt(constant * gradient * horizon * lr / (n * np.power(sigma, alpha))))
 
     # Plot everything
-    output_dir = json_path.parent.parent / (json_path.parent.stem + "_figures")
+    output_dir = json_path.parent / (json_path.parent.stem + "_figures")
     if not output_dir.is_dir():
         output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving figures in {str(output_dir)}")

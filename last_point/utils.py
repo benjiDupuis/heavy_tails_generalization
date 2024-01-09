@@ -44,7 +44,7 @@ def accuracy(y: torch.Tensor, \
 
 def linear_regression(x_tab: np.ndarray, 
                           y_tab: np.ndarray, 
-                          threshold: float = 1.e-6) -> float:
+                          threshold: float = 1.e-9) -> float:
         """
         x_tab and y_tab are supposed to be one dimensional
         ie the data is scalar
@@ -69,7 +69,7 @@ def linear_regression(x_tab: np.ndarray,
 
 def robust_mean(tab: np.ndarray,
                 quantile_up: float = 0.15,
-                quantile_low: float = 0.) -> float:
+                quantile_low: float = 0.05) -> float:
      
     assert quantile_up >= 0. and quantile_up < 0.5, quantile_up
     assert quantile_low >= 0. and quantile_low < 0.5, quantile_low

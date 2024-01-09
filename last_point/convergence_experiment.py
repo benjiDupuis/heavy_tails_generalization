@@ -17,27 +17,32 @@ from last_point.gaussian_mixture import sample_standard_gaussian_mixture
 from last_point.model import fcnn, fcnn_num_params
 from last_point.simulation import asymptotic_constant, run_one_simulation
 
+CONVERGENCE_SEED = int(str(time.time()).split(".")[1])
+
+def plot_loss_alpha(result_dir: str):
+    pass
+
 def main(result_dir: str='tests_directory',
           horizon: int=0, 
-          d: int=2,
-          eta: float=0.001,
-          sigma: float=1.,
+          d: int=10,
+          eta: float=0.01,
+          sigma: float=20.,
           alpha: float=1.8,
           n: int = 1000,
           n_val: int = 1000,
-          n_ergodic: int = 1000,
+          n_ergodic: int = 10000,
           n_classes: int = 2,
-          decay: float = 0.,
-          depth: int = 0,
-          width: int = 50,
-          data_seed: int = 1,
-          model_seed: int = 42,
-          normalization: bool = True,
+          decay: float = 0.001,
+          depth: int = 1,
+          width: int = 100,
+          data_seed: int = CONVERGENCE_SEED,
+          model_seed: int = CONVERGENCE_SEED + 1,
+          normalization: bool = False,
           id_sigma: int = 0,
           id_alpha: int = 0,
           compute_gradient: bool = False,
           bias: bool = False,
-          data_type: str = "mnist",
+          data_type: str = "gaussian",
           subset: float = 0.01,
           resize: int = 28,
           classes: list = None,
@@ -199,6 +204,8 @@ def main(result_dir: str='tests_directory',
     logger.info(f'Saving accuracy plot in {str(output_path)}')
     plt.savefig(str(output_path))
     plt.close()
+
+    return train_accs, val_accs
 
 if __name__ == "__main__":
     fire.Fire(main)

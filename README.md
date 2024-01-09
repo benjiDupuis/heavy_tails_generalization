@@ -2,6 +2,8 @@ Correct experiments, with noise added in a right way, started the 2023/12/03
 experiments with sigma as a scaling factor started the 2023/12/26
 experiments with robust mean estimation started the 2023/12/29
 Best linear experiment so far: 12_29_14_33
+experiments with several seeds estimation started the 2023/12/29
+
 
 best exp so far: 12-12-16-09-31
 

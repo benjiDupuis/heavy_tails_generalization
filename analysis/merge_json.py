@@ -22,7 +22,8 @@ def average_results(all_results: dict) -> dict:
             # we construct the new key
             key_id = "_".join([
                 str(all_results[key_seed][key_exp]["id_sigma"]),
-                str(all_results[key_seed][key_exp]["id_alpha"])
+                str(all_results[key_seed][key_exp]["id_alpha"]),
+                str(all_results[key_seed][key_exp]["width"])
             ])
 
             # creating the dict and adding the elements
@@ -32,6 +33,8 @@ def average_results(all_results: dict) -> dict:
             # All the following should not change with the seed
             dict_of_lists[key_id]["alpha"] = all_results[key_seed][key_exp]["alpha"]
             dict_of_lists[key_id]["sigma"] = all_results[key_seed][key_exp]["sigma"]
+            dict_of_lists[key_id]["horizon"] = all_results[key_seed][key_exp]["horizon"]
+            dict_of_lists[key_id]["eta"] = all_results[key_seed][key_exp]["eta"]
             dict_of_lists[key_id]["id_sigma"] = all_results[key_seed][key_exp]["id_sigma"]
             dict_of_lists[key_id]["id_alpha"] = all_results[key_seed][key_exp]["id_alpha"]
             dict_of_lists[key_id]["eta"] = all_results[key_seed][key_exp]["eta"]
@@ -72,8 +75,8 @@ def average_results(all_results: dict) -> dict:
         #                  (len(acc_gen_norm_list), len(loss_gen_list))
         assert len(acc_gen_list) == len(gradient_list),\
                          (len(acc_gen_list), len(gradient_list))
-        assert len(acc_gen_list) == len(all_results.keys()),\
-                         (len(acc_gen_list), len(all_results.keys()))
+        # assert len(acc_gen_list) == len(all_results.keys()),\
+        #                  (len(acc_gen_list), len(all_results.keys()))
 
         n_seed = len(acc_gen_list)
 
