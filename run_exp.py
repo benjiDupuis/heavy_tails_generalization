@@ -90,18 +90,18 @@ if __name__ == '__main__':
     parser.add_argument('--width', type=int, default=50)
     parser.add_argument('--data_seed', type=int, default=1)
     parser.add_argument('--model_seed', type=int, default=42)
-    parser.add_argument('--normalization', type=bool, default=False)
+    parser.add_argument('--normalization', type=int, default=0)
     parser.add_argument('--id_sigma', type=int, default=0)
     parser.add_argument('--id_alpha', type=int, default=0)
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=1)
     parser.add_argument('--data_type', type=str, default="mnist")
-    parser.add_argument('--stopping', type=bool, default=False)
-    parser.add_argument('--scale_sigma', type=bool, default=True)
+    parser.add_argument('--stopping', type=int, default=0)
+    parser.add_argument('--scale_sigma', type=int, default=1)
 
 
     parser.add_argument('--subset', type=float, default=0.01)
-    parser.add_argument('--resize', type=int, default=14)
+    parser.add_argument('--resize', type=int, default=28)
     parser.add_argument('--classes', nargs='+', required=False) # classes used in training
 
     

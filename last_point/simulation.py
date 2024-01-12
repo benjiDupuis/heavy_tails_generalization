@@ -139,7 +139,6 @@ def run_one_simulation(horizon: int,
 
         if k == 0:
             logger.debug(f"Initial train accuracy: {accuracy_train}")
-            logger.debug(f"Initial test accuracy: {accuracy_train}")
 
         # Gradient step, put there to ensure initial acc are not corrupted
         opt.step()
@@ -359,7 +358,9 @@ def run_and_save_one_simulation(result_dir: str,
         "acc_gen_normalized": accuracy_error / np.sqrt(poly_alpha(alpha)),
         "gradient_mean_unormalized": gradient_mean_unormalized,
         "resize": resize,
-        "scale_sigma": scale_sigma
+        "scale_sigma": scale_sigma,
+        "normalization": normalization,
+        "stopping": stopping
     }
 
     result_dir = Path(result_dir)
