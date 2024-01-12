@@ -12,12 +12,12 @@ from tqdm import tqdm
 from analysis.kendall import granulated_kendalls_from_dict
 
 
-def main(json_path: str,
+def granulated_kendalls(json_path: str,
          generalization_key: str = "acc_generalization",
-         complexity_keys: List[str] = ["estimated_bound"],
-         hyperparameters_keys: List[str] = ["sigma", "alpha"]):
+         complexity_keys: List[str] = ["alpha"],
+         hyperparameters_keys: List[str] = ["n_params"]):
     """
-    json_path should be all results
+    json_path should be all_results.json
     """
 
     json_path = Path(json_path)
@@ -32,12 +32,13 @@ def main(json_path: str,
     all_seeds_kendalls = {}
     final_results = {}
 
-    for seed_id in tqdm(range(n_seed)):
+    for seed in tqdm(results.keys()):
         
-        seed = seed_list[seed_id]
         seed_results = results[seed]
-
-        all_seeds_kendalls[seed] = granulated_kendalls_from_dict(seed_results)
+        all_seeds_kendalls[seed] = granulated_kendalls_from_dict(seed_results,\
+                                                            generalization_key, \
+                                                            complexity_keys, \
+                                                            hyperparameters_keys)
 
     final_results["granulated Kendalls"] = {}
     for comp in complexity_keys:
@@ -51,7 +52,7 @@ def main(json_path: str,
             coeff_list = np.array(coeff_list)
             coeff_mean = coeff_list.mean()
             centered = coeff_list - coeff_mean
-            coeff_dev = no.sqrt(np.power(centered, 2).sum() / (n_seed - 1))
+            coeff_dev = np.sqrt(np.power(centered, 2).sum() / (n_seed - 1))
             final_results["granulated Kendalls"][comp][hyp]["mean"] = coeff_mean
             final_results["granulated Kendalls"][comp][hyp]["dev"] = coeff_dev
         
@@ -63,7 +64,7 @@ def main(json_path: str,
         coeff_list = np.array(coeff_list)
         coeff_mean = coeff_list.mean()
         centered = coeff_list - coeff_mean
-        coeff_dev = no.sqrt(np.power(centered, 2).sum() / (n_seed - 1))
+        coeff_dev = np.sqrt(np.power(centered, 2).sum() / (n_seed - 1))
         final_results["granulated Kendalls"][comp]["average granulated Kendall coefficient"]["mean"] = coeff_mean
         final_results["granulated Kendalls"][comp]["average granulated Kendall coefficient"]["dev"] = coeff_dev
 
@@ -76,7 +77,7 @@ def main(json_path: str,
         coeff_list = np.array(coeff_list)
         coeff_mean = coeff_list.mean()
         centered = coeff_list - coeff_mean
-        coeff_dev = no.sqrt(np.power(centered, 2).sum() / (n_seed - 1))
+        coeff_dev = np.sqrt(np.power(centered, 2).sum() / (n_seed - 1))
         final_results["Kendall tau"][comp]["mean"] = coeff_mean
         final_results["Kendall tau"][comp]["dev"] = coeff_dev
 
@@ -90,50 +91,59 @@ def main(json_path: str,
     logger.info(f"Results: \n {json.dumps(final_results, indent=2)}")
 
     return final_results
-
         
 
-
-def alpha_kendall(results: dict):
+def alpha_kendall(results: dict, key: str = "n_params"):
     """
     dict is one seed, e.g. average_results for instance
     """
 
     # We first collect, for each sigma, the alpha_tab and the gen_tab
     # and use them to compute the kendall coefficient
-    n_sigma = 1 + max(results[k]["id_sigma"] for k in results.keys())
 
-    sigma_tab = []
+    if key == "sigma":
+        varying = "sigma"
+        varying_id = "id_sigma"
+    elif key == "n_params":
+        varying = "n_params"
+        varying_id = "n_params"
+    else:
+        raise NotImplementedError()
+
+
+    varying_tab = []
     kendall_tab = []
-
-    fixed_sigma_results = {k:{} for k in range(n_sigma)}
-    for k in range(n_sigma):
-        fixed_sigma_results[k]["alpha"] = []
-        fixed_sigma_results[k]["gen"] = []
+    fixed_results = {}
 
     for key in tqdm(results.keys()):
 
-        fixed_sigma_results[results[key]["id_sigma"]]["alpha"].append(
+        if results[key][varying_id] not in fixed_results.keys():
+            fixed_results[results[key][varying_id]] = {
+                "alpha": [],
+                "gen": []
+            }
+
+        fixed_results[results[key][varying_id]]["alpha"].append(
             results[key]["alpha"]
         )
-        fixed_sigma_results[results[key]["id_sigma"]]["gen"].append(
-            results[key]["acc_gen_normalized"]
+        fixed_results[results[key][varying_id]]["gen"].append(
+            results[key]["acc_generalization"]
         )
-        fixed_sigma_results[results[key]["id_sigma"]]["sigma"] = results[key]["sigma"]
+        fixed_results[results[key][varying_id]][varying] = results[key][varying]
 
-    for sigma_id in tqdm(fixed_sigma_results.keys()):
+    for v in tqdm(fixed_results.keys()):
 
-        sigma_tab.append(fixed_sigma_results[sigma_id]["sigma"])
+        varying_tab.append(fixed_results[v][varying])
         kendall_tab.append(kendalltau(
-            fixed_sigma_results[sigma_id]["alpha"],
-            fixed_sigma_results[sigma_id]["gen"]
+            fixed_results[v]["alpha"],
+            fixed_results[v]["gen"]
         ).correlation)
 
-    return sigma_tab, kendall_tab
+    return np.array(varying_tab), np.array(kendall_tab)
 
-def plot_alpha_kendall(json_path: str):
+def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str = None):
     """
-    dict is one seed, e.g. average_results for instance
+    json_path should be all_results.json
     """
 
     json_path = Path(json_path)
@@ -142,16 +152,88 @@ def plot_alpha_kendall(json_path: str):
     with open(str(json_path), "r") as json_file:
         results = json.load(json_file)
 
-    sigma_tab, kendall_tab = alpha_kendall(results)
+    kendalls = []
+
+    for seed in tqdm(results.keys()):
+        varying_tab, kendall_tab = alpha_kendall(results[seed], key=key)
+        kendalls.append(kendall_tab[:, np.newaxis])
+    
+    psi = np.concatenate(kendalls, axis=1)
+    assert psi.shape[0] == len(varying_tab)
+    assert psi.shape[1] == len(results.keys())
+
+    n = len(results.keys())
+    # psi should be [alpha, seed]
+
+    psi_means = psi.mean(axis=1)
+    psi_deviations = np.sqrt(np.power((psi - psi_means[:, np.newaxis]), 2).sum(axis=1) / (n - 1))
+
+    # we order varying_tab
+    indices = np.argsort(varying_tab)
+    varying_tab = varying_tab[indices]
+    psi_means = psi_means[indices]
+    psi_deviations = psi_deviations[indices]
+    
+    # Plots
+    plt.figure()
+    plt.fill_between(varying_tab, \
+                    psi_means - psi_deviations,\
+                    psi_means + psi_deviations,
+                    color = "g",
+                    alpha = 0.25)
+    plt.plot(varying_tab, psi_means, color = "g",label=r"$\psi$")
+    xlabel = "d" if key == "n_params" else r"$\sigma$"
+    plt.xlabel(xlabel)
+    plt.ylabel("Kendall tau")
+
+    output_dir = json_path.parent / (json_path.parent.stem + "_figures")
+    if not output_dir.is_dir():
+        output_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Saving figures in {str(output_dir)}")
+
+    fig_name = "alpha_correlation_with_errors"
+    output_path = (output_dir / fig_name).with_suffix(".png")
+
+    if av_path is not None:
+        
+        av_path = Path(av_path)
+        assert av_path.exists(), str(av_path)
+
+        with open(str(av_path), "r") as json_file:
+            results = json.load(json_file)
+
+        varying_tab, kendall_tab = alpha_kendall(results, key=key)
+        plt.scatter(varying_tab, kendall_tab, color="k", marker="x",\
+                    label=r"$\psi$ of the mean generalization error wrt $\alpha$")
+
+    plt.legend()
+    plt.savefig(str(output_path))
+    plt.close()
+
+    
+def plot_alpha_kendall(json_path: str, key: str="n_params"):
+    """
+    dict is one seedor average_results
+    """
+
+    json_path = Path(json_path)
+    assert json_path.exists(), str(json_path)
+
+    with open(str(json_path), "r") as json_file:
+        results = json.load(json_file)
+
+    varying_tab, kendall_tab = alpha_kendall(results, key=key)
 
     plt.figure()
-    plt.scatter(sigma_tab, kendall_tab)
-    plt.xlabel("sigma")
-    plt.xscale("log")
-    plt.ylabel("Kendall tau")
-    plt.title("Correlation gen/alpha with in function of sigma")
+    plt.scatter(varying_tab, kendall_tab)
+    xlabel = "d" if key == "n_params" else "sigma"
+    plt.xlabel(xlabel)
+    # plt.xscale("log")
+    plt.ylabel(r"Kendall tau $\psi$")
+    # plt.legend()
+    # plt.title("Correlation gen/alpha with in function of sigma")
 
-    output_dir = json_path.parent.parent / (json_path.parent.stem + "_figures")
+    output_dir = json_path.parent / (json_path.parent.stem + "_figures")
     if not output_dir.is_dir():
         output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving figures in {str(output_dir)}")
@@ -163,8 +245,10 @@ def plot_alpha_kendall(json_path: str):
     plt.close()
 
 
+
 if __name__ == "__main__":
-    fire.Fire(plot_alpha_kendall)
+    # fire.Fire(plot_alpha_kendall)
+    fire.Fire(alpha_kendall_all_seeds)
 
 
 

@@ -60,39 +60,39 @@ def main(args_):
     command_list = []
     exp_num = 0 # Count the total number of exps that have been launched
 
-    for s in range(len(sigmas)):
-        for a in range(len(alphas)):
-            for w in range(len(widths)):
+    for j in range(args.num_seeds_per_hparam):
+    
+        for s in range(len(sigmas)):
+            for a in range(len(alphas)):
+                for w in range(len(widths)):
 
-                # transfer flags from the args
-                flags = copy.deepcopy(args.__dict__)
-                [flags.pop(key) for key in
-                ['num_cpus', 'num_gpus',\
-                'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
-                'num_seeds_per_hparam', 'n_alpha', 'n_sigma', 'seed',
-                'date', 'n_width', 'width_min', 'width_max']]
-                
-                ######## HACK #######
-                # To avoid None arg error with the classes
-                # TODO: maybe do it for each class
-                if args_.classes is None:
-                    flags.pop("classes")
-                #####################
+                    # transfer flags from the args
+                    flags = copy.deepcopy(args.__dict__)
+                    [flags.pop(key) for key in
+                    ['num_cpus', 'num_gpus',\
+                    'sigma_min', 'sigma_max', 'alpha_min', 'alpha_max',
+                    'num_seeds_per_hparam', 'n_alpha', 'n_sigma', 'seed',
+                    'date', 'n_width', 'width_min', 'width_max']]
+                    
+                    ######## HACK #######
+                    # To avoid None arg error with the classes
+                    # TODO: maybe do it for each class
+                    if args_.classes is None:
+                        flags.pop("classes")
+                    #####################
 
-                # randomly sample flags
-                for flag in default_configs:
-                    if flag in search_ranges:
-                        flags[flag] = sample_flag(sample_spec=search_ranges[flag], rds=rds)
-                    else:
-                        flags[flag] = default_configs[flag]
+                    # randomly sample flags
+                    for flag in default_configs:
+                        if flag in search_ranges:
+                            flags[flag] = sample_flag(sample_spec=search_ranges[flag], rds=rds)
+                        else:
+                            flags[flag] = default_configs[flag]
 
-                flags['sigma'] = sigmas[s]
-                flags['alpha'] = alphas[a]
-                flags['width'] = widths[w]
-                flags['id_sigma'] = s
-                flags['id_alpha'] = a
-
-                for j in range(args.num_seeds_per_hparam):
+                    flags['sigma'] = sigmas[s]
+                    flags['alpha'] = alphas[a]
+                    flags['width'] = widths[w]
+                    flags['id_sigma'] = s
+                    flags['id_alpha'] = a
 
                     np.random.seed(init_seeds[j])
 
@@ -142,18 +142,18 @@ if __name__ == '__main__':
     parser.add_argument('--long', type=int, default=0)
 
     parser.add_argument('--num_cpus', type=int, default=15)
-    parser.add_argument('--num_gpus', type=int, default=0)
+    parser.add_argument('--num_gpus', type=int, default=1)
 
     # Parameters varying during the experiment
-    parser.add_argument('--sigma_min', type=float, default=0.5)
-    parser.add_argument('--sigma_max', type=float, default=20.)
+    parser.add_argument('--sigma_min', type=float, default=0.01)
+    parser.add_argument('--sigma_max', type=float, default=30.)
     parser.add_argument('--alpha_min', type=float, default=1.6)
     parser.add_argument('--alpha_max', type=float, default=2.)
-    parser.add_argument('--width_min', type=int, default=200)
-    parser.add_argument('--width_max', type=int, default=300)
-    parser.add_argument('--n_sigma', type=int, default=10)
+    parser.add_argument('--width_min', type=int, default=10)
+    parser.add_argument('--width_max', type=int, default=200)
+    parser.add_argument('--n_sigma', type=int, default=1)
     parser.add_argument('--n_alpha', type=int, default=10)
-    parser.add_argument('--n_width', type=int, default=1)
+    parser.add_argument('--n_width', type=int, default=10)
 
     # Parameters which are launcher specific
     # parser.add_argument('--grid_size', type=int, default=10)
@@ -175,8 +175,9 @@ if __name__ == '__main__':
     parser.add_argument('--normalization', type=bool, default=False)
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=0)
-    parser.add_argument('--data_type', type=str, default="gaussian")
-    parser.add_argument('--stopping', type=int, default=1) # whether or not use the stopping criterion
+    parser.add_argument('--data_type', type=str, default="mnist")
+    parser.add_argument('--stopping', type=int, default=0) # whether or not use the stopping criterion
+    parser.add_argument('--scale_sigma', type=int, default=0)
 
     # Additional option to vary the width
     #parser.add_argument('--width_min', type=int, default=10)

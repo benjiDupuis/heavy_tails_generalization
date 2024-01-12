@@ -6,7 +6,7 @@ def sample_standard_gaussian_mixture(dimension: int,
                         n_per_class: int,
                         n_classes: int = 2,
                         means_std: float = 25,
-                        blobs_std: float = 10.,
+                        blobs_std: float = 100.,
                         random_centers: bool = True,
                         means_deterministic: np.ndarray = None) -> (torch.Tensor, torch.Tensor):
     
@@ -15,7 +15,7 @@ def sample_standard_gaussian_mixture(dimension: int,
     
     # Generate means of the blobs
     if random_centers:
-        if n_classes > 2:
+        if n_classes > 4:
             means = np.array([
                 means_std * np.random.normal(0., 1., size = dimension)\
                     for _ in range(n_classes)

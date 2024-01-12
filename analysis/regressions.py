@@ -129,7 +129,7 @@ def sigma_regression(json_path: str):
         gen_tab = np.array(values[a]["gen"])
         alpha_tab[a] = values[a]["alpha"]
 
-        indices = (gen_tab > 0.) * (sigma_tab > 2./np.sqrt(n_params))
+        indices = (gen_tab > 0.) * (sigma_tab > 1./np.sqrt(n_params))
         alpha_est_tab[a] = 2. * linear_regression(np.log(1./sigma_tab[indices]),
                                             np.log(gen_tab[indices]))
 
@@ -181,8 +181,6 @@ def regressions_several_seeds_sigma(json_path: str):
         seed = seed_list[seed_id]
         seed_results = results[seed]
 
-        n_width = 1 + max(seed_results[k]["id_sigma"] for k in seed_results.keys())
-
         values = {a:{"sigma": [], "gen": []} for a in range(n_alpha)}
 
         for k in seed_results.keys():
@@ -192,6 +190,7 @@ def regressions_several_seeds_sigma(json_path: str):
             values[alpha_id]["sigma"].append(seed_results[k]["sigma"])
             # Be aware that we use the normalized accuracy error
             values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"])
+            # values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"] / np.sqrt(seed_results[k]["gradient_mean"]))
 
         for a in values.keys():
 
@@ -199,10 +198,10 @@ def regressions_several_seeds_sigma(json_path: str):
             gen_tab = np.array(values[a]["gen"])
             alpha_tab[a] = values[a]["alpha"]
 
-            indices = (gen_tab > 0.) * (sigma_tab > np.quantile(sigma_tab, 0.1))
-            # indices = (gen_tab > 0.) 
+            indices = (gen_tab > 0.) * (sigma_tab > 1./np.sqrt(n_params))
+            # indices = (gen_tab > 0.)
 
-            if len(indices) > 1:
+            if len(np.where(indices == 1)[0]) > 1:
                 reg = linear_regression(np.log(1./sigma_tab[indices]),
                                                     np.log(gen_tab[indices]))
                 alpha_regressions[a, seed_id] = 2. * reg      
@@ -210,7 +209,6 @@ def regressions_several_seeds_sigma(json_path: str):
                 logger.debug(f"No indices for alpha={alpha_tab[a]}")
                 alpha_regressions[a, seed_id] = None
 
-    
     alpha_means = alpha_regressions.mean(axis=1)
     centered = alpha_regressions - alpha_means[:, np.newaxis]
     alpha_deviations = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_alpha - 1))
@@ -221,9 +219,20 @@ def regressions_several_seeds_sigma(json_path: str):
 
         plt.figure()
         alphas_gt = np.linspace(np.min(alpha_tab), np.max(alpha_tab))
-        plt.plot(alphas_gt, alphas_gt, color = "r")
-        plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
-        plt.title("Regression of alpha from the generalization bound")
+        plt.fill_between(alpha_tab, \
+                            alpha_means - alpha_deviations,\
+                             alpha_means + alpha_deviations,
+                             color = "b",
+                             alpha = 0.25)
+        plt.plot(alphas_gt, alphas_gt, color = "r", label=r"Ground truth $\alpha$")
+        # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
+        plt.plot(alpha_tab, alpha_means, color = "b",label=r"Estimated $\hat{\alpha}$")
+        plt.xlabel(r"$\alpha$")
+        plt.ylabel(r"$\hat{\alpha}$")
+        plt.legend()
+        # plt.plot(alphas_gt, alphas_gt, color = "r")
+        # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
+        # plt.title("Regression of alpha from the generalization bound")
         plt.savefig(str(alpha_reg_path))
         plt.close()
 
@@ -277,8 +286,9 @@ def regressions_several_seeds_dim(json_path: str):
             alpha_tab[a] = values[a]["alpha"]
 
             indices = (gen_tab > 0.) * (params_tab > np.quantile(params_tab, 0.1))
+            # indices = (gen_tab > 0.)
 
-            if len(np.where(indices==1)) > 1:
+            if len(np.where(indices==1)[0]) > 1:
                 reg = linear_regression(np.log(params_tab[indices]),
                                                     np.log(gen_tab[indices]))
                 alpha_regressions[a, seed_id] = 2. - 4. * reg      
@@ -296,9 +306,17 @@ def regressions_several_seeds_dim(json_path: str):
 
         plt.figure()
         alphas_gt = np.linspace(np.min(alpha_tab), np.max(alpha_tab))
-        plt.plot(alphas_gt, alphas_gt, color = "r")
-        plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
-        # plt.title("Regression of alpha from the generalization bound")
+        plt.fill_between(alpha_tab, \
+                            alpha_means - alpha_deviations,\
+                             alpha_means + alpha_deviations,
+                             color = "b",
+                             alpha = 0.25)
+        plt.plot(alphas_gt, alphas_gt, color = "r", label=r"Ground truth $\alpha$")
+        # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
+        plt.plot(alpha_tab, alpha_means, color = "b",label=r"Estimated $\hat{\alpha}$")
+        plt.xlabel(r"$\alpha$")
+        plt.ylabel(r"$\hat{\alpha}$")
+        plt.legend()
         plt.savefig(str(alpha_reg_path))
         plt.close()
 

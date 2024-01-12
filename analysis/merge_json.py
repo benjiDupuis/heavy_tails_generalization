@@ -43,6 +43,8 @@ def average_results(all_results: dict) -> dict:
             dict_of_lists[key_id]["n_params"] = all_results[key_seed][key_exp]["n_params"]
             dict_of_lists[key_id]["n"] = all_results[key_seed][key_exp]["n"]
             dict_of_lists[key_id]["n_val"] = all_results[key_seed][key_exp]["n_val"]
+            dict_of_lists[key_id]["n_ergodic"] = all_results[key_seed][key_exp]["n_ergodic"]
+            # dict_of_lists[key_id]["acc_gen_normalized"] = all_results[key_seed][key_exp]["acc_gen_normalized"]
 
             # HACK improve it
             if "acc_generalization" not in dict_of_lists[key_id].keys():

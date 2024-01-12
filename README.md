@@ -7,6 +7,15 @@ experiments with several seeds estimation started the 2023/12/29
 
 best exp so far: 12-12-16-09-31
 
+Experiments to remember for the paper:
+ - linear on MNIST: 2023-12-31_18_14_37
+    - sigma_regression: using gradients helps for the correlation, the raw stuff has the good values but not that much correlation
+ - n_params evolution on MNIST: 2024-01-04_10_22_56
+ - gaussians sigma regression: 2024-01-09_15_07_42
+ - gaussians dim regression: 2024-01-09_16_10_06
+ - 3 layers MNIST: 2024-01-04_15_06_05
+ - gaussian: 2024-01-09_19_12_56 can be used to argue that estimating gradients on the whole stuff does not change much things
+
 todo:
  make the data hyperparameters callable
  vary the width, try to see if the double descent changes

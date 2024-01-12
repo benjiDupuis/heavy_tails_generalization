@@ -82,7 +82,7 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     output_dir = Path(output_dir)
 
     # Colormap
-    color_map = plt.cm.get_cmap('RdYlBu')
+    color_map = plt.cm.get_cmap('viridis')
     
     plt.figure()
     output_path = (output_dir / ("estimated bound versus generalization_sigma_"  + stem )).with_suffix(".png")
@@ -104,15 +104,18 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     plt.figure()
     output_path = (output_dir / ("estimated bound versus generalization_alpha_"  + stem )).with_suffix(".png")
     # plt.scatter(gen_tab, bound_tab)
+    color_map = plt.cm.get_cmap('viridis')
     sc = plt.scatter(gen_tab,
                      bound_tab,
                      c=alpha_values,
                      cmap=color_map)
     cbar = plt.colorbar(sc)
-    cbar.set_label("alpha")
-    if log_scale:
-        plt.yscale("log")
-        plt.xscale("log")
+    cbar.set_label(r"$\alpha$")
+    # if log_scale:
+    #     plt.yscale("log")
+    #     plt.xscale("log")
+    plt.xlabel("Bound estimation")
+    plt.xlabel("Accuracy error")
     # plt.title("estimated bound versus generalization")
     logger.info(f"Saving a bound plot in {str(output_path)}")
     plt.savefig(str(output_path))
@@ -259,7 +262,7 @@ def analyze_one_seed(json_path: str):
 
         # in pytorch sgd, decay is the true decay, not post lr
         decay = results[k]["decay"]
-        horizon = results[k]["horizon"]
+        horizon = results[k]["horizon"] + results[k]["n_ergodic"]
         lr = results[k]["eta"]
 
         constant = asymptotic_constant(alpha, n_params)

@@ -15,6 +15,7 @@ from levy.levy import generate_levy_for_simulation
 
 from data.dataset import get_full_batch_data
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
+from last_point.iris import sample_iris_dataset
 from last_point.model import fcnn, fcnn_num_params
 from last_point.utils import robust_mean, poly_alpha
 
@@ -66,7 +67,9 @@ def run_one_simulation(horizon: int,
     torch.manual_seed(seed)
     # np.random.seed(seed)
     model = fcnn(d, width, depth, bias, n_classes)
-    # model = SinusFCNN(depth=depth, width=width, input_dim=d, bias=True)
+    model.to(device)
+
+    logger.info(f"On device {device}")
     
     opt = torch.optim.SGD(model.parameters(),
                            lr = eta,
@@ -156,9 +159,10 @@ def run_one_simulation(horizon: int,
     gen_tab = np.array(gen_tab)
     generalization = robust_mean(gen_tab)
     gradient_mean = float(robust_mean(np.array(gradient_norm_list))) if compute_gradients else "non_computed"
+    gradient_mean_unormalized = float(np.array(gradient_norm_list).mean()) if compute_gradients else "non_computed"
 
     return float(generalization), loss_tab, accuracy_tab,\
-          None, gradient_mean, converged
+          None, gradient_mean, converged, gradient_mean_unormalized
 
 
 def stable_normalization(alpha: float, d: float) -> float:
@@ -219,7 +223,8 @@ def run_and_save_one_simulation(result_dir: str,
                         subset: float = 0.01,
                         resize: int = 28,
                         classes: list = None,
-                        stopping: bool = False):
+                        stopping: bool = False,
+                        scale_sigma: bool = True):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
@@ -252,6 +257,14 @@ def run_and_save_one_simulation(result_dir: str,
         d = resize**2
         n_classes = 10 if classes is None else len(classes)
 
+    elif data_type == "iris":
+        np.random.seed(data_seed)
+        torch.manual_seed(data_seed)
+        data, info_on_iris = sample_iris_dataset()
+
+        n_classes = 3
+        d = info_on_iris[1]
+
     # TODO remove this hack
     initialization = None 
 
@@ -260,13 +273,15 @@ def run_and_save_one_simulation(result_dir: str,
     ######################################
     # We scale the value of sigma
     # wrt the sqrt of the number of parameters
-    sigma = sigma / np.sqrt(n_params)
+    if scale_sigma:
+        logger.warning("sigma has been renormalized by sqrt(n_params)")
+        sigma = sigma / np.sqrt(n_params)
     ######################################
 
     # Normalization, if necessary
     normalization_factor = stable_normalization(alpha, n_params)
     if normalization:
-        sigma_simu = normalization_factor * sigma
+        # sigma_simu = normalization_factor * sigma   # Too dangerous
         logger.info(f"Normalization factor: {normalization_factor}")
     else:
         sigma_simu = sigma
@@ -274,7 +289,8 @@ def run_and_save_one_simulation(result_dir: str,
     K_constant = asymptotic_constant(alpha, n_params)
 
     generalization, _, accuracy_tab,\
-          _, gradient_mean, converged = run_one_simulation(horizon, 
+          _, gradient_mean, converged, \
+          gradient_mean_unormalized = run_one_simulation(horizon, 
                                     d,
                                     eta,
                                     sigma_simu,
@@ -340,7 +356,10 @@ def run_and_save_one_simulation(result_dir: str,
         "estimated_bound": bound,
         "converged": converged,
         'final_train_accuracy': accuracy_tab[-1][0].item(),
-        "acc_gen_normalized": accuracy_error / np.sqrt(poly_alpha(alpha))
+        "acc_gen_normalized": accuracy_error / np.sqrt(poly_alpha(alpha)),
+        "gradient_mean_unormalized": gradient_mean_unormalized,
+        "resize": resize,
+        "scale_sigma": scale_sigma
     }
 
     result_dir = Path(result_dir)
@@ -348,6 +367,8 @@ def run_and_save_one_simulation(result_dir: str,
         result_dir.mkdir()
 
     result_path = (result_dir / f"result_{id_sigma}_{id_alpha}_{width}").with_suffix(".json")
+
+    logger.info(f"Saving results JSON file in {str(result_path)}")
 
     with open(str(result_path), "w") as result_file:
         json.dump(result_dict, result_file, indent = 2)

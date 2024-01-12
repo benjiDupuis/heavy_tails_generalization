@@ -8,6 +8,8 @@ heavy_tails/
 
 figures/
 
+final_results
+
 __pychache__/
 **/__pychache__/
 *.pyc

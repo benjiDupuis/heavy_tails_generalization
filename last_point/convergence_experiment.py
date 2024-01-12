@@ -14,19 +14,18 @@ from typing import Tuple
 
 from data.dataset import get_full_batch_data
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
+from last_point.iris import sample_iris_dataset
 from last_point.model import fcnn, fcnn_num_params
 from last_point.simulation import asymptotic_constant, run_one_simulation
 
 CONVERGENCE_SEED = int(str(time.time()).split(".")[1])
 
-def plot_loss_alpha(result_dir: str):
-    pass
 
 def main(result_dir: str='tests_directory',
           horizon: int=0, 
           d: int=10,
           eta: float=0.01,
-          sigma: float=20.,
+          sigma: float=1.,
           alpha: float=1.8,
           n: int = 1000,
           n_val: int = 1000,
@@ -34,7 +33,7 @@ def main(result_dir: str='tests_directory',
           n_classes: int = 2,
           decay: float = 0.001,
           depth: int = 1,
-          width: int = 100,
+          width: int = 50,
           data_seed: int = CONVERGENCE_SEED,
           model_seed: int = CONVERGENCE_SEED + 1,
           normalization: bool = False,
@@ -79,6 +78,14 @@ def main(result_dir: str='tests_directory',
         d = resize**2
         n_classes = 10
 
+    elif data_type == "iris":
+        np.random.seed(data_seed)
+        torch.manual_seed(data_seed)
+        data, info_on_iris = sample_iris_dataset()
+
+        n_classes = 3
+        d = info_on_iris[1]
+
     # TODO remove this hack
     initialization = None 
 
@@ -93,7 +100,7 @@ def main(result_dir: str='tests_directory',
     K_constant = asymptotic_constant(alpha, n_params)
 
     generalization, loss_tab, accuracy_tab,\
-          _, gradient_mean, converged = run_one_simulation(horizon, 
+          _, gradient_mean, converged, _ = run_one_simulation(horizon, 
                                     d,
                                     eta,
                                     sigma,
@@ -207,5 +214,122 @@ def main(result_dir: str='tests_directory',
 
     return train_accs, val_accs
 
+
+
+alpha_list = [1.4, 1.6, 1.8, 2.]
+
+def several_main(result_dir: str='final_results/convergence',
+          horizon: int=0, 
+          d: int=10,
+          eta: float=0.01,
+          sigma: float=0.1,
+          alpha_list: list=[1.4, 1.6, 1.8, 2.],
+          n: int = 100,
+          n_val: int = 1000,
+          n_ergodic: int = 2000,
+          n_classes: int = 2,
+          decay: float = 0.001,
+          depth: int = 0,
+          width: int = 50,
+          data_seed: int = CONVERGENCE_SEED,
+          model_seed: int = CONVERGENCE_SEED + 1,
+          normalization: bool = False,
+          id_sigma: int = 0,
+          id_alpha: int = 0,
+          compute_gradient: bool = False,
+          bias: bool = False,
+          data_type: str = "mnist",
+          subset: float = 0.01,
+          resize: int = 28,
+          classes: list = None,
+          stopping: bool = False):
+
+    exp_path = Path(result_dir) / str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0]
+
+    acc_train_tabs = []
+    acc_val_tabs = []
+    
+    for a in alpha_list:
+        acc_train, acc_val = main(result_dir=str(exp_path / f"alpha_{a}"),\
+                                    horizon=horizon, 
+                                    d=d,
+                                    eta=eta,
+                                    sigma=sigma,
+                                    alpha=a,
+                                    n = n,
+                                    n_val = n,
+                                    n_ergodic = n_ergodic,
+                                    n_classes = n_classes,
+                                    decay = decay,
+                                    depth = depth,
+                                    width = width,
+                                    data_seed = data_seed,
+                                    model_seed = model_seed,
+                                    normalization = normalization,
+                                    id_sigma = id_sigma,
+                                    id_alpha = id_alpha,
+                                    compute_gradient = compute_gradient,
+                                    bias = bias,
+                                    data_type = data_type,
+                                    subset = subset,
+                                    resize = resize,
+                                    classes = classes,
+                                    stopping = stopping)
+        
+        acc_train_tabs.append(acc_train)
+        acc_val_tabs.append(acc_val)
+
+    iterations = len(acc_train)
+    
+    plt.figure()
+
+    plt.subplot(141)
+    plt.plot(np.arange(iterations), acc_train_tabs[0], label="Train accuracy")
+    plt.plot(np.arange(iterations), acc_val_tabs[0], label="Test accuracy")
+    plt.legend()
+    plt.title(r"$\alpha=$" + f"{alpha_list[0]}")
+    plt.legend()
+
+    plt.subplot(142)
+    plt.plot(np.arange(iterations), acc_train_tabs[1], label="Train accuracy")
+    plt.plot(np.arange(iterations), acc_val_tabs[1], label="Test accuracy")
+    plt.legend()
+    plt.title(r"$\alpha=$" + f"{alpha_list[1]}")
+    plt.legend()
+
+    plt.subplot(143)
+    plt.plot(np.arange(iterations), acc_train_tabs[2], label="Train accuracy")
+    plt.plot(np.arange(iterations), acc_val_tabs[2], label="Test accuracy")
+    plt.legend()
+    plt.title(r"$\alpha=$" + f"{alpha_list[2]}")
+    plt.legend()
+
+    plt.subplot(144)
+    plt.plot(np.arange(iterations), acc_train_tabs[3], label="Train accuracy")
+    plt.plot(np.arange(iterations), acc_val_tabs[3], label="Test accuracy")
+    plt.legend()
+    plt.title(r"$\alpha=$" + f"{alpha_list[3]}")
+
+    fig_name = "accuracies"
+    output_path = (exp_path / fig_name).with_suffix(".png")
+    plt.legend()
+    logger.info(f'Saving accuracy plot in {str(output_path)}')
+    plt.savefig(str(output_path))
+
+    plt.close()
+
+    acc_train_tabs = np.array(acc_train_tabs)
+    acc_val_tabs = np.array(acc_val_tabs)
+    alpha_list = np.array(alpha_list)
+
+    logger.info(f"Saving NPY files in {str(exp_path)}")
+    np.save(str(exp_path / "train.npy"), acc_train_tabs)
+    np.save(str(exp_path / "val.npy"), acc_val_tabs)
+    np.save(str(exp_path / "alpha.npy"), alpha_list)
+
+
+
+
+
 if __name__ == "__main__":
-    fire.Fire(main)
+    fire.Fire(several_main)
