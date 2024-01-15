@@ -189,8 +189,8 @@ def regressions_several_seeds_sigma(json_path: str):
             values[alpha_id]["alpha"] = seed_results[k]["alpha"]
             values[alpha_id]["sigma"].append(seed_results[k]["sigma"])
             # Be aware that we use the normalized accuracy error
-            # values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"])
-            values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"] / np.sqrt(seed_results[k]["gradient_mean"]))
+            values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"])
+            # values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"] / np.sqrt(seed_results[k]["gradient_mean"]))
 
         for a in values.keys():
 
@@ -198,8 +198,8 @@ def regressions_several_seeds_sigma(json_path: str):
             gen_tab = np.array(values[a]["gen"])
             alpha_tab[a] = values[a]["alpha"]
 
-            # indices = (gen_tab > 0.) * (sigma_tab > 4./np.sqrt(n_params))
-            indices = (gen_tab > 0.)
+            indices = (gen_tab > 0.) * (sigma_tab > 1./np.sqrt(n_params))
+            # indices = (gen_tab > 0.)
 
             if len(np.where(indices == 1)[0]) > 1:
                 reg = linear_regression(np.log(1./sigma_tab[indices]),
@@ -214,28 +214,34 @@ def regressions_several_seeds_sigma(json_path: str):
     # alpha_deviations = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_alpha - 1))
     alpha_means, alpha_deviations = matrix_robust_mean(alpha_regressions)
 
-    if all(alpha_means[k] is not None for k in range(len(alpha_tab))):
-        alpha_reg_path = (output_dir / "alpha_regressions_from_sigma").with_suffix(".png")
-        logger.info(f"Saving regression figure in {str(alpha_reg_path)}")
+    # HACK
+    ids = np.argwhere(~np.isnan(alpha_means))[:, 0]
 
-        plt.figure()
-        alphas_gt = np.linspace(np.min(alpha_tab), np.max(alpha_tab))
-        plt.fill_between(alpha_tab, \
-                            alpha_means - alpha_deviations,\
-                             alpha_means + alpha_deviations,
-                             color = "b",
-                             alpha = 0.25)
-        plt.plot(alphas_gt, alphas_gt, color = "r", label=r"Ground truth $\alpha$")
-        # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
-        plt.plot(alpha_tab, alpha_means, color = "b",label=r"Estimated $\hat{\alpha}$")
-        plt.xlabel(r"$\alpha$")
-        plt.ylabel(r"$\hat{\alpha}$")
-        plt.legend()
-        # plt.plot(alphas_gt, alphas_gt, color = "r")
-        # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
-        # plt.title("Regression of alpha from the generalization bound")
-        plt.savefig(str(alpha_reg_path))
-        plt.close()
+    alpha_means = alpha_means[ids]
+    alpha_deviations = alpha_deviations[ids]
+    alpha_tab = alpha_tab[ids]
+
+    alpha_reg_path = (output_dir / "alpha_regressions_from_sigma").with_suffix(".png")
+    logger.info(f"Saving regression figure in {str(alpha_reg_path)}")
+
+    plt.figure()
+    alphas_gt = np.linspace(np.min(alpha_tab), np.max(alpha_tab))
+    plt.fill_between(alpha_tab, \
+                        alpha_means - alpha_deviations,\
+                            alpha_means + alpha_deviations,
+                            color = "b",
+                            alpha = 0.25)
+    plt.plot(alphas_gt, alphas_gt, color = "r", label=r"Ground truth $\alpha$")
+    # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
+    plt.plot(alpha_tab, alpha_means, color = "b",label=r"Estimated $\hat{\alpha}$")
+    plt.xlabel(r"$\alpha$")
+    plt.ylabel(r"$\hat{\alpha}$")
+    plt.legend()
+    # plt.plot(alphas_gt, alphas_gt, color = "r")
+    # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
+    # plt.title("Regression of alpha from the generalization bound")
+    plt.savefig(str(alpha_reg_path))
+    plt.close()
 
 
    
@@ -357,7 +363,7 @@ def regressions_several_seeds_dim(json_path: str):
         plt.close()
 
 
-def main(json_path: str, mode: str = "regressions_several_seeds_dim"):
+def main(json_path: str, mode: str = "regressions_several_seeds_sigma"):
 
     if mode == "dimension_regressions":
         dimension_regressions(json_path)

@@ -69,6 +69,15 @@ def main(result_dir: str='tests_directory',
         data = (x_train, y_train, x_val, y_val)
         print(data)
 
+    elif data_type == "cifar10":
+        np.random.seed(data_seed)
+        torch.manual_seed(data_seed)
+        data = get_full_batch_data("cifar10", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
+
+        # adapt the input dimension
+        d = resize**2 * 3
+        n_classes = 10
+
     elif data_type == "mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
@@ -238,9 +247,9 @@ def several_main(result_dir: str='final_results/convergence',
           id_alpha: int = 0,
           compute_gradient: bool = False,
           bias: bool = False,
-          data_type: str = "mnist",
-          subset: float = 0.01,
-          resize: int = 28,
+          data_type: str = "cifar10",
+          subset: float = 0.1,
+          resize: int = 32,
           classes: list = None,
           stopping: bool = False):
 

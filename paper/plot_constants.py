@@ -4,13 +4,30 @@ import fire
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
+from scipy.special import gamma
 
 from last_point.utils import poly_alpha
+
+def test_constant(alpha):
+    if type(alpha) == float and alpha == 2.:
+        # asymptotic development of gamma(1-s)
+        # using Euler reflection formula
+        # TODO: recheck this
+        num_alpha = 2.
+    else:
+        num_alpha = (2. - alpha) * gamma(1. - alpha / 2.)
+
+    # den_alpha = alpha * np.power(2., alpha / 2.)
+    den_alpha = alpha
+
+    # return num_alpha / den_alpha
+    return (2. - alpha) / np.sin(np.pi * 0.5 * alpha)
 
 def plot_F(output_dir: str = "paper"):
 
     alphas = np.linspace(1., 1.999, 100)
-    F = poly_alpha(alphas)
+    F = poly_alpha(alphas) #To obtain the true figure
+    # F = test_constant(alphas)
 
     output_dir = Path(output_dir)
     if not output_dir.exists():
@@ -66,5 +83,5 @@ def plot_dimension_dependence(output_dir: str = "paper"):
 
 
 if __name__ == "__main__":
-    fire.Fire(plot_dimension_dependence)
+    fire.Fire(plot_F)
 

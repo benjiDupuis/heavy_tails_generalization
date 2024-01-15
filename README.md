@@ -17,6 +17,13 @@ Experiments to remember for the paper:
  - 3 layers MNIST: 2024-01-04_15_06_05
  - gaussian: 2024-01-09_19_12_56 can be used to argue that estimating gradients on the whole stuff does not change much things
 
+
+
+experiments MNIST used in final results:
+ - sigma varies: 2024-01-14_14_57_14
+ - d varies: 2024-01-14_16_36
+ - sigma_plot (depth 0): 2023-12-31_18_14_37
+
 todo:
  make the data hyperparameters callable
  vary the width, try to see if the double descent changes

@@ -92,7 +92,7 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     output_path = (output_dir / ("estimated bound versus generalization_sigma_"  + stem )).with_suffix(".png")
     # plt.scatter(gen_tab, bound_tab)
 
-    plt.plot(np.linspace(a,b,100), np.linspace(a,b,100), "--", color="r")
+    # plt.plot(np.linspace(a,b,100), np.linspace(a,b,100), "--", color="r")
 
     sc = plt.scatter(gen_tab,
                      bound_tab,
@@ -109,7 +109,7 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     plt.close()
 
     plt.figure()
-    plt.plot(np.linspace(a,b,100), np.linspace(a,b,100), "--", color="r")
+    # plt.plot(np.linspace(a,b,100), np.linspace(a,b,100), "--", color="r")
 
     output_path = (output_dir / ("estimated bound versus generalization_alpha_"  + stem )).with_suffix(".png")
     # plt.scatter(gen_tab, bound_tab)
@@ -297,7 +297,7 @@ def analyze_one_seed(json_path: str):
         sigma = results[k]["sigma"]  # true value, without normalization by the dim
         sigma_factor = results[k]["sigma"] * np.sqrt(n_params)
         gradient = results[k]["gradient_mean"]
-        gradient_unormalized = results[k]["gradient_mean_unormalized"]
+        # gradient_unormalized = results[k]["gradient_mean_unormalized"]
 
         # TODO: this is ugly and suboptimal, find better
         sigma_tab[results[k]["id_sigma"]] = sigma
@@ -337,8 +337,8 @@ def analyze_one_seed(json_path: str):
         normalization_tab[results[k]["id_alpha"]] = constant
 
         bound_tab.append(np.sqrt((constant * gradient * horizon * lr) / (n * np.power(sigma, alpha))))
-        acc_bound_tab.append(np.sqrt((constant * gradient_unormalized * horizon * lr)/\
-                         (n * np.power(sigma, alpha))) +np.sqrt(np.log(200 * np.sqrt(n))/(n)))
+        acc_bound_tab.append(100. * np.sqrt((constant * gradient * horizon * lr)/\
+                         (2. * n * np.power(sigma, alpha))))
 
     # Plot everything
     output_dir = json_path.parent / (json_path.parent.stem + "_figures")
