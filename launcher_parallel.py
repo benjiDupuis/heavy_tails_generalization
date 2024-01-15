@@ -142,14 +142,14 @@ if __name__ == '__main__':
     parser.add_argument('--long', type=int, default=0)
 
     parser.add_argument('--num_cpus', type=int, default=20)
-    parser.add_argument('--num_gpus', type=int, default=1)
+    parser.add_argument('--num_gpus', type=int, default=0)
 
     # Parameters varying during the experiment
     parser.add_argument('--sigma_min', type=float, default=0.01)
-    parser.add_argument('--sigma_max', type=float, default=30.)
+    parser.add_argument('--sigma_max', type=float, default=40.)
     parser.add_argument('--alpha_min', type=float, default=1.6)
     parser.add_argument('--alpha_max', type=float, default=2.)
-    parser.add_argument('--width_min', type=int, default=10)
+    parser.add_argument('--width_min', type=int, default=40)
     parser.add_argument('--width_max', type=int, default=200)
     parser.add_argument('--n_sigma', type=int, default=1)
     parser.add_argument('--n_alpha', type=int, default=10)
@@ -163,12 +163,12 @@ if __name__ == '__main__':
     parser.add_argument('--result_dir', type=str, default=RESULT_DIR)
 
     # Parameters that are shared among all runs
-    parser.add_argument('--horizon', type=int, default=0)
+    parser.add_argument('--horizon', type=int, default=8000)
     parser.add_argument('--d', type=int, default=10)
     parser.add_argument('--eta', type=float, default=0.01)
     parser.add_argument('--n', type=int, default=1000)
     parser.add_argument('--n_val', type=int, default=1000)
-    parser.add_argument('--n_ergodic', type=int, default=5000)
+    parser.add_argument('--n_ergodic', type=int, default=2000)
     parser.add_argument('--n_classes', type=int, default=2)
     parser.add_argument('--decay', type=float, default=0.001)
     parser.add_argument('--depth', type=int, default=1)

@@ -69,7 +69,7 @@ def linear_regression(x_tab: np.ndarray,
 
 def robust_mean(tab: np.ndarray,
                 quantile_up: float = 0.15,
-                quantile_low: float = 0.05) -> float:
+                quantile_low: float = 0.0) -> float:
      
     assert quantile_up >= 0. and quantile_up < 0.5, quantile_up
     assert quantile_low >= 0. and quantile_low < 0.5, quantile_low
@@ -82,6 +82,34 @@ def robust_mean(tab: np.ndarray,
     indices = (tab >= low_quantile) * (tab <= high_quantile)
 
     return tab[indices].mean()
+
+
+
+def matrix_robust_mean(tab: np.ndarray, quantile: float = 0.1):
+    """
+    tab should be hyp, seed
+    """
+    n_hyp = tab.shape[0]
+    means = np.zeros(n_hyp)
+    devs = np.zeros(n_hyp)
+
+    for k in range(n_hyp):
+        temp_tab = tab[k,:] 
+        est_tab = temp_tab[
+            (temp_tab > np.quantile(temp_tab, quantile)) *\
+            (temp_tab < np.quantile(temp_tab, 1. - quantile))
+        ]
+        n = len(est_tab)
+        m = est_tab.mean()
+        c = est_tab - m
+        s = np.sqrt(np.power(c, 2).sum() / (n-1))
+
+        means[k] = m
+        devs[k] = s
+
+    return means, devs
+
+
 
 
 

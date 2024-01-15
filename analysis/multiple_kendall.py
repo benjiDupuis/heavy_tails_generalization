@@ -139,6 +139,7 @@ def alpha_kendall(results: dict, key: str = "n_params"):
             fixed_results[v]["gen"]
         ).correlation)
 
+
     return np.array(varying_tab), np.array(kendall_tab)
 
 def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str = None):
@@ -184,15 +185,17 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
     plt.plot(varying_tab, psi_means, color = "g",label=r"$\psi$")
     xlabel = "d" if key == "n_params" else r"$\sigma$"
     plt.xlabel(xlabel)
+    # plt.xscale("log")
     plt.ylabel("Kendall tau")
 
     output_dir = json_path.parent / (json_path.parent.stem + "_figures")
     if not output_dir.is_dir():
         output_dir.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Saving figures in {str(output_dir)}")
 
     fig_name = "alpha_correlation_with_errors"
     output_path = (output_dir / fig_name).with_suffix(".png")
+
+    logger.info(f"Saving figures in {str(output_path)}")
 
     if av_path is not None:
         
@@ -203,12 +206,20 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
             results = json.load(json_file)
 
         varying_tab, kendall_tab = alpha_kendall(results, key=key)
-        plt.scatter(varying_tab, kendall_tab, color="k", marker="x",\
+
+        # we order varying_tab
+        indices = np.argsort(varying_tab)
+        varying_tab = varying_tab[indices]
+        kendall_tab = kendall_tab[indices]
+
+        plt.plot(varying_tab, kendall_tab, "--", color="k",\
                     label=r"$\psi$ of the mean generalization error wrt $\alpha$")
 
     plt.legend()
     plt.savefig(str(output_path))
     plt.close()
+
+    return varying_tab, psi_means, psi_deviations
 
     
 def plot_alpha_kendall(json_path: str, key: str="n_params"):
@@ -245,10 +256,45 @@ def plot_alpha_kendall(json_path: str, key: str="n_params"):
     plt.close()
 
 
+def plot_two_alpha_kendalls(json_1, json_2, key="sigma"):
+
+    
+    varying_tab_1, kendall_tab_1, dev_tab_1 = alpha_kendall_all_seeds(json_1, key=key)
+
+    varying_tab_2, kendall_tab_2, dev_tab_2 = alpha_kendall_all_seeds(json_2, key=key)
+
+    varying_tab = np.concatenate([varying_tab_1[1:], varying_tab_2[1:]])
+    kendall_tab = np.concatenate([kendall_tab_1[1:], kendall_tab_2[1:]])
+    dev_tab = np.concatenate([dev_tab_1[1:], dev_tab_2[1:]])
+
+    plt.figure()
+    plt.plot(varying_tab, kendall_tab, color = "g",label=r"$\psi$")
+    plt.fill_between(varying_tab, \
+                    kendall_tab - dev_tab,\
+                    kendall_tab + dev_tab,
+                    color = "g",
+                    alpha = 0.25)
+    xlabel = "d" if key == "n_params" else r"$\sigma$"
+    plt.xlabel(xlabel)
+    # plt.xscale("log")
+    plt.ylabel("Kendall tau")
+    plt.legend()
+
+    output_dir = Path(".")
+
+    fig_name = "alpha_correlation"
+    output_path = (output_dir / fig_name).with_suffix(".png")
+
+    plt.savefig(str(output_path))
+    plt.close()
+
+
+
 
 if __name__ == "__main__":
     # fire.Fire(plot_alpha_kendall)
     fire.Fire(alpha_kendall_all_seeds)
+    # fire.Fire(plot_two_alpha_kendalls)
 
 
 

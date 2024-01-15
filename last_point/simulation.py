@@ -143,9 +143,11 @@ def run_one_simulation(horizon: int,
         # Gradient step, put there to ensure initial acc are not corrupted
         opt.step()
 
-        if compute_gradients and (k >= horizon or (converged and stopping)):
-            with torch.no_grad():
-                gradient_norm_list.append(model.gradient_l2_squared_norm())
+        # if compute_gradients and (k >= horizon or (converged and stopping)):
+        #     with torch.no_grad():
+                # gradient_norm_list.append(model.gradient_l2_squared_norm())
+        gradient_norm_list.append(model.gradient_l2_squared_norm())
+        
 
         # Adding the levy noise
         with torch.no_grad():

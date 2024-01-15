@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from last_point.utils import linear_regression, all_linear_regression
 from last_point.simulation import asymptotic_constant
-from last_point.utils import poly_alpha
+from last_point.utils import poly_alpha, matrix_robust_mean
 
 def dimension_regressions(json_path: str):
     """
@@ -189,8 +189,8 @@ def regressions_several_seeds_sigma(json_path: str):
             values[alpha_id]["alpha"] = seed_results[k]["alpha"]
             values[alpha_id]["sigma"].append(seed_results[k]["sigma"])
             # Be aware that we use the normalized accuracy error
-            values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"])
-            # values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"] / np.sqrt(seed_results[k]["gradient_mean"]))
+            # values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"])
+            values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"] / np.sqrt(seed_results[k]["gradient_mean"]))
 
         for a in values.keys():
 
@@ -198,8 +198,8 @@ def regressions_several_seeds_sigma(json_path: str):
             gen_tab = np.array(values[a]["gen"])
             alpha_tab[a] = values[a]["alpha"]
 
-            indices = (gen_tab > 0.) * (sigma_tab > 1./np.sqrt(n_params))
-            # indices = (gen_tab > 0.)
+            # indices = (gen_tab > 0.) * (sigma_tab > 4./np.sqrt(n_params))
+            indices = (gen_tab > 0.)
 
             if len(np.where(indices == 1)[0]) > 1:
                 reg = linear_regression(np.log(1./sigma_tab[indices]),
@@ -209,9 +209,10 @@ def regressions_several_seeds_sigma(json_path: str):
                 logger.debug(f"No indices for alpha={alpha_tab[a]}")
                 alpha_regressions[a, seed_id] = None
 
-    alpha_means = alpha_regressions.mean(axis=1)
-    centered = alpha_regressions - alpha_means[:, np.newaxis]
-    alpha_deviations = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_alpha - 1))
+    # alpha_means = alpha_regressions.mean(axis=1)
+    # centered = alpha_regressions - alpha_means[:, np.newaxis]
+    # alpha_deviations = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_alpha - 1))
+    alpha_means, alpha_deviations = matrix_robust_mean(alpha_regressions)
 
     if all(alpha_means[k] is not None for k in range(len(alpha_tab))):
         alpha_reg_path = (output_dir / "alpha_regressions_from_sigma").with_suffix(".png")
@@ -260,6 +261,7 @@ def regressions_several_seeds_dim(json_path: str):
     n_alpha = 1 + max(results[key_example][k]["id_alpha"] for k in results[key_example].keys())
 
     alpha_regressions = np.zeros((n_alpha, n_seed))
+    alpha_regressions_corrected = np.zeros((n_alpha, n_seed))
     alpha_tab = np.zeros(n_alpha)
 
     for seed_id in tqdm(range(n_seed)):
@@ -269,24 +271,31 @@ def regressions_several_seeds_dim(json_path: str):
 
         n_width = 1 + max(seed_results[k]["id_sigma"] for k in seed_results.keys())
 
-        values = {a:{"n_params": [], "gen": []} for a in range(n_alpha)}
+        # values = {a:{"n_params": [], "gen": []} for a in range(n_alpha)}
+        values = {}
 
         for k in seed_results.keys():
+
+            if seed_results[k]["id_alpha"] not in values.keys():
+                values[seed_results[k]["id_alpha"]] = {"n_params": [], "gen": [], "gen_corrected": []}
 
             alpha_id = seed_results[k]["id_alpha"]
             values[alpha_id]["alpha"] = seed_results[k]["alpha"]
             values[alpha_id]["n_params"].append(seed_results[k]["n_params"])
             # Be aware that we use the normalized accuracy error
             values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"])
+            values[alpha_id]["gen_corrected"].append(seed_results[k]["acc_generalization"] / np.sqrt(seed_results[k]["gradient_mean"]))
+
 
         for a in values.keys():
 
             params_tab = np.array(values[a]["n_params"])
             gen_tab = np.array(values[a]["gen"])
+            gen_corrected_tab = np.array(values[a]["gen_corrected"])
             alpha_tab[a] = values[a]["alpha"]
 
-            indices = (gen_tab > 0.) * (params_tab > np.quantile(params_tab, 0.1))
-            # indices = (gen_tab > 0.)
+            # indices = (gen_tab > 0.) * (params_tab > np.quantile(params_tab, 0.1))
+            indices = (gen_tab > 0.)
 
             if len(np.where(indices==1)[0]) > 1:
                 reg = linear_regression(np.log(params_tab[indices]),
@@ -296,9 +305,24 @@ def regressions_several_seeds_dim(json_path: str):
                 logger.debug(f"No indices for alpha={alpha_tab[a]}")
                 alpha_regressions[a, seed_id] = None
 
-    alpha_means = alpha_regressions.mean(axis=1)
-    centered = alpha_regressions - alpha_means[:, np.newaxis]
-    alpha_deviations = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_alpha - 1))
+            if len(np.where(indices==1)[0]) > 1:
+                reg = linear_regression(np.log(params_tab[indices]),
+                                                    np.log(gen_corrected_tab[indices]))
+                alpha_regressions_corrected[a, seed_id] = 2. - 4. * reg      
+            else:
+                logger.debug(f"No indices for alpha={alpha_tab[a]}")
+                alpha_regressions[a, seed_id] = None
+
+    # alpha_means = alpha_regressions.mean(axis=1)
+    # centered = alpha_regressions - alpha_means[:, np.newaxis]
+    # alpha_deviations = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_seed - 1))
+
+    # alpha_means_corrected = alpha_regressions_corrected.mean(axis=1)
+    # centered = alpha_regressions_corrected - alpha_means_corrected[:, np.newaxis]
+    # alpha_deviations_corrected = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_seed - 1))
+
+    alpha_means, alpha_deviations = matrix_robust_mean(alpha_regressions)
+    alpha_means_corrected, alpha_deviations_corrected = matrix_robust_mean(alpha_regressions_corrected)
 
     if all(alpha_means[k] is not None for k in range(len(alpha_tab))):
         alpha_reg_path = (output_dir / "alpha_regressions_from_n_params").with_suffix(".png")
@@ -317,11 +341,23 @@ def regressions_several_seeds_dim(json_path: str):
         plt.xlabel(r"$\alpha$")
         plt.ylabel(r"$\hat{\alpha}$")
         plt.legend()
+
+        plt.fill_between(alpha_tab, \
+                            alpha_means_corrected - alpha_deviations_corrected,\
+                             alpha_means_corrected + alpha_deviations_corrected,
+                             color = "gray",
+                             alpha = 0.25)
+        # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
+        plt.plot(alpha_tab, alpha_means_corrected, color = "k",label=r"Estimated $\hat{\alpha}$ with gradient correction")
+        plt.xlabel(r"$\alpha$")
+        plt.ylabel(r"$\hat{\alpha}$")
+        plt.legend()
+
         plt.savefig(str(alpha_reg_path))
         plt.close()
 
 
-def main(json_path: str, mode: str = "regressions_several_seeds_sigma"):
+def main(json_path: str, mode: str = "regressions_several_seeds_dim"):
 
     if mode == "dimension_regressions":
         dimension_regressions(json_path)

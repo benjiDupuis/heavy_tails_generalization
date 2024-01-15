@@ -77,9 +77,13 @@ def plot_alpha_dimension_regression(json_path: str):
 
 def plot_bound(gen_tab, bound_tab, output_dir: str,
                 sigma_values, alpha_values,
-                    log_scale: bool = True, stem: str=""):
+                    log_scale: bool = True, stem: str="",
+                    xlabel:str="Accuracy error"):
     
     output_dir = Path(output_dir)
+
+    a = max(min(gen_tab), min(bound_tab))
+    b = min(max(gen_tab), max(bound_tab))
 
     # Colormap
     color_map = plt.cm.get_cmap('viridis')
@@ -87,6 +91,9 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     plt.figure()
     output_path = (output_dir / ("estimated bound versus generalization_sigma_"  + stem )).with_suffix(".png")
     # plt.scatter(gen_tab, bound_tab)
+
+    plt.plot(np.linspace(a,b,100), np.linspace(a,b,100), "--", color="r")
+
     sc = plt.scatter(gen_tab,
                      bound_tab,
                      c=np.log(sigma_values) / np.log(10.),
@@ -102,6 +109,8 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     plt.close()
 
     plt.figure()
+    plt.plot(np.linspace(a,b,100), np.linspace(a,b,100), "--", color="r")
+
     output_path = (output_dir / ("estimated bound versus generalization_alpha_"  + stem )).with_suffix(".png")
     # plt.scatter(gen_tab, bound_tab)
     color_map = plt.cm.get_cmap('viridis')
@@ -111,11 +120,11 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
                      cmap=color_map)
     cbar = plt.colorbar(sc)
     cbar.set_label(r"$\alpha$")
-    # if log_scale:
-    #     plt.yscale("log")
-    #     plt.xscale("log")
+    if log_scale:
+        plt.yscale("log")
+        plt.xscale("log")
     plt.xlabel("Bound estimation")
-    plt.xlabel("Accuracy error")
+    plt.xlabel(xlabel)
     # plt.title("estimated bound versus generalization")
     logger.info(f"Saving a bound plot in {str(output_path)}")
     plt.savefig(str(output_path))
@@ -182,6 +191,64 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
         logger.warning("Linear regression did not work, probably due to negative generalization values")
 
 
+def plot_gen_dim(json_path: str):
+    """
+    take the average result path and plot gen / dim
+    """
+
+    json_path = Path(json_path)
+    assert json_path.exists(), str(json_path)
+
+    with open(str(json_path), "r") as json_file:
+        results = json.load(json_file)
+
+    num_exp = len(results.keys())
+    logger.info(f"Found {num_exp} experiments")
+
+    n_params_ids = {}
+    i = 0
+    for key in results.keys():
+        if results[key]["n_params"] not in n_params_ids.keys():
+            n_params_ids[results[key]["n_params"]] = i
+            i += 1
+    
+    n_alpha = 1 + max(results[k]["id_alpha"] for k in results.keys())
+    n_width = 1 + max(n_params_ids[k] for k in n_params_ids.keys())
+
+    alpha_tab = np.zeros(n_alpha)
+    n_params_tab = np.zeros(n_width)
+    acc_gen_grid = np.zeros((n_width, n_alpha))
+    acc_gen_grid_deviation = np.zeros((n_width, n_alpha))
+
+    example_key = list(results.keys())[0]
+    deviations: bool = ("acc_generalization_deviation" in list(results[example_key].keys()))
+
+    for k in tqdm(results.keys()):
+
+        n_params_tab[n_params_ids[results[k]["n_params"]]] = results[k]["n_params"]
+        alpha_tab[results[k]["id_alpha"]] = results[k]["alpha"]
+
+        acc_gen_grid[
+            n_params_ids[results[k]["n_params"]],
+            results[k]["id_alpha"]
+        ] = results[k]["acc_generalization"]
+
+        if deviations:
+            acc_gen_grid_deviation[
+                    n_params_ids[results[k]["n_params"]],
+                    results[k]["id_alpha"]
+                ] = results[k]["acc_generalization_deviation"]
+
+    # Plot everything
+    output_dir = json_path.parent / (json_path.parent.stem + "_figures")
+    if not output_dir.is_dir():
+        output_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Saving figures in {str(output_dir)}")
+
+    plot_one_seed(acc_gen_grid, n_params_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)
+
+
+
 def analyze_one_seed(json_path: str):
 
     json_path = Path(json_path)
@@ -230,6 +297,7 @@ def analyze_one_seed(json_path: str):
         sigma = results[k]["sigma"]  # true value, without normalization by the dim
         sigma_factor = results[k]["sigma"] * np.sqrt(n_params)
         gradient = results[k]["gradient_mean"]
+        gradient_unormalized = results[k]["gradient_mean_unormalized"]
 
         # TODO: this is ugly and suboptimal, find better
         sigma_tab[results[k]["id_sigma"]] = sigma
@@ -268,8 +336,9 @@ def analyze_one_seed(json_path: str):
         constant = asymptotic_constant(alpha, n_params)
         normalization_tab[results[k]["id_alpha"]] = constant
 
-        bound_tab.append(np.sqrt(constant * gradient * horizon * lr / (n * np.power(sigma, alpha))))
-        acc_bound_tab.append(np.sqrt(constant * gradient * horizon * lr / (n * np.power(sigma, alpha))))
+        bound_tab.append(np.sqrt((constant * gradient * horizon * lr) / (n * np.power(sigma, alpha))))
+        acc_bound_tab.append(np.sqrt((constant * gradient_unormalized * horizon * lr)/\
+                         (n * np.power(sigma, alpha))) +np.sqrt(np.log(200 * np.sqrt(n))/(n)))
 
     # Plot everything
     output_dir = json_path.parent / (json_path.parent.stem + "_figures")
@@ -279,8 +348,10 @@ def analyze_one_seed(json_path: str):
 
     plot_one_seed(acc_gen_grid, sigma_factor_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)
     # plot_one_seed(acc_gen_grid / np.sqrt(normalization_tab[np.newaxis, :]), sigma_tab, alpha_tab, str(output_dir))
-    plot_bound(gen_tab, bound_tab, output_dir, sigma_factor_values, alpha_values, log_scale=True)
-    plot_bound(acc_tab, acc_bound_tab, output_dir, sigma_factor_values, alpha_values, log_scale=True, stem="accuracy")
+    plot_bound(gen_tab, bound_tab, output_dir, sigma_factor_values,\
+                 alpha_values, log_scale=True, xlabel="Loss error (cross entropy)")
+    plot_bound(acc_tab, acc_bound_tab, output_dir, sigma_factor_values,\
+                alpha_values, log_scale=True, stem="accuracy")
 
 
 def main(json_path: str, mode: str="all_plots"):
@@ -289,6 +360,8 @@ def main(json_path: str, mode: str="all_plots"):
         analyze_one_seed(json_path)
     elif mode == "dim_regression":
         plot_alpha_dimension_regression(json_path)
+    elif mode == "d_plots":
+        plot_gen_dim(json_path)
     else:
         raise NotImplementedError()
  

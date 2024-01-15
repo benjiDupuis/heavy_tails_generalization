@@ -6,6 +6,8 @@ import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
+from last_point.utils import robust_mean
+
 
 def average_results(all_results: dict) -> dict:
     """
@@ -44,7 +46,7 @@ def average_results(all_results: dict) -> dict:
             dict_of_lists[key_id]["n"] = all_results[key_seed][key_exp]["n"]
             dict_of_lists[key_id]["n_val"] = all_results[key_seed][key_exp]["n_val"]
             dict_of_lists[key_id]["n_ergodic"] = all_results[key_seed][key_exp]["n_ergodic"]
-            # dict_of_lists[key_id]["acc_gen_normalized"] = all_results[key_seed][key_exp]["acc_gen_normalized"]
+            dict_of_lists[key_id]["acc_gen_normalized"] = all_results[key_seed][key_exp]["acc_gen_normalized"]
 
             # HACK improve it
             if "acc_generalization" not in dict_of_lists[key_id].keys():
@@ -63,6 +65,10 @@ def average_results(all_results: dict) -> dict:
                 dict_of_lists[key_id]["gradient_mean"] = []
             dict_of_lists[key_id]["gradient_mean"].append(all_results[key_seed][key_exp]["gradient_mean"])
 
+            if "gradient_mean_unormalized" not in dict_of_lists[key_id].keys():
+                dict_of_lists[key_id]["gradient_mean_unormalized"] = []
+            dict_of_lists[key_id]["gradient_mean_unormalized"].append(all_results[key_seed][key_exp]["gradient_mean_unormalized"])
+
     # turn the dict_of_lists into the desired dict
     for key_id in tqdm(dict_of_lists.keys()):
 
@@ -70,6 +76,7 @@ def average_results(all_results: dict) -> dict:
         # acc_gen_norm_list = np.array(dict_of_lists[key_id]["acc_gen_normalized"])
         loss_gen_list = np.array(dict_of_lists[key_id]["loss_generalization"])
         gradient_list = np.array(dict_of_lists[key_id]["gradient_mean"])
+        gradient_list_unormalized = np.array(dict_of_lists[key_id]["gradient_mean_unormalized"])
 
         assert len(acc_gen_list) == len(loss_gen_list),\
                          (len(acc_gen_list), len(loss_gen_list))
@@ -87,6 +94,8 @@ def average_results(all_results: dict) -> dict:
         # dict_of_lists[key_id]["acc_gen_normalized"] = acc_gen_list.mean()
         dict_of_lists[key_id]["loss_generalization"] = loss_gen_list.mean()
         dict_of_lists[key_id]["gradient_mean"] = gradient_list.mean()
+        dict_of_lists[key_id]["gradient_mean_unormalized"] = gradient_list_unormalized.mean()
+        
 
         # standard deviation
         if n_seed >= 2:
@@ -98,12 +107,15 @@ def average_results(all_results: dict) -> dict:
             dict_of_lists[key_id]["loss_generalization_deviation"] = deviation
             deviation = np.sqrt(((gradient_list - gradient_list.mean())**2).sum() / (n_seed - 1))
             dict_of_lists[key_id]["gradient_deviation"] = deviation
+            deviation = np.sqrt(((gradient_list_unormalized - gradient_list_unormalized.mean())**2).sum() / (n_seed - 1))
+            dict_of_lists[key_id]["gradient_deviation_unormalized"] = deviation
         else:
             deviation = None
             dict_of_lists[key_id]["acc_generalization_deviation"] = deviation
             # dict_of_lists[key_id]["acc_gen_norm_deviation"] = deviation
             dict_of_lists[key_id]["loss_generalization_deviation"] = deviation
             dict_of_lists[key_id]["gradient_deviation"] = deviation
+            dict_of_lists[key_id]["gradient_deviation_unormalized"] = deviation
     
     if n_seed == 1:
             logger.warning("Only 1 seed found")
