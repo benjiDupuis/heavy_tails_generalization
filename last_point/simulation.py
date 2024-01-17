@@ -45,6 +45,11 @@ def run_one_simulation(horizon: int,
     # Device
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
+    # if batch_size < 0:
+    #     logger.warning("No batch size")
+    # else:
+    #     logger.warning(f"Batch size is {batch_size}")
+
     # Define data
     assert len(data) == 4, len(data)
     x_train = data[0].to(device)
@@ -253,6 +258,15 @@ def run_and_save_one_simulation(result_dir: str,
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
         data = get_full_batch_data("mnist", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
+
+        # adapt the input dimension
+        d = resize**2
+        n_classes = 10 if classes is None else len(classes)
+
+    elif data_type == "fashion-mnist":
+        np.random.seed(data_seed)
+        torch.manual_seed(data_seed)
+        data = get_full_batch_data("fashion-mnist", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2

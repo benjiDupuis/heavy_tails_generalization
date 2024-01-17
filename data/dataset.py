@@ -93,6 +93,13 @@ def get_data(args: DataOptions, subset_percentage: float = None):
             'mean': [0.1307],
             'std': [0.3081]
         }
+    elif args.dataset == "fashion-mnist":
+        data_class = 'FashionMNIST'
+        num_classes = 10
+        stats = {
+            'mean': [0.1307],
+            'std': [0.3081]
+        }
     else:
         raise ValueError("unknown dataset")
 
@@ -105,6 +112,14 @@ def get_data(args: DataOptions, subset_percentage: float = None):
     ]
 
     if args.dataset == "mnist" and args.resize is not None:
+        trans = [
+            transforms.ToTensor(),
+            lambda t: t.type(torch.get_default_dtype()),
+            transforms.Normalize(**stats),
+            transforms.Resize(args.resize)
+        ]
+
+    if args.dataset == "fashion-mnist" and args.resize is not None:
         trans = [
             transforms.ToTensor(),
             lambda t: t.type(torch.get_default_dtype()),

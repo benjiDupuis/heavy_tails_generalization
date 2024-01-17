@@ -26,7 +26,7 @@ def main(result_dir: str='tests_directory',
           d: int=10,
           eta: float=0.01,
           sigma: float=1.,
-          alpha: float=1.8,
+          alpha: float=2.,
           n: int = 1000,
           n_val: int = 1000,
           n_ergodic: int = 10000,
@@ -82,6 +82,15 @@ def main(result_dir: str='tests_directory',
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
         data = get_full_batch_data("mnist", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
+
+        # adapt the input dimension
+        d = resize**2
+        n_classes = 10
+
+    elif data_type == "fashion-mnist":
+        np.random.seed(data_seed)
+        torch.manual_seed(data_seed)
+        data = get_full_batch_data("fashion-mnist", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2
@@ -227,19 +236,19 @@ def main(result_dir: str='tests_directory',
 
 alpha_list = [1.4, 1.6, 1.8, 2.]
 
-def several_main(result_dir: str='final_results/convergence',
+def several_main(result_dir: str='tests_directory',
           horizon: int=0, 
           d: int=10,
           eta: float=0.01,
-          sigma: float=10.,
+          sigma: float=3.,
           alpha_list: list=[1.4, 1.6, 1.8, 2.],
           n: int = 100,
           n_val: int = 1000,
-          n_ergodic: int = 2000,
+          n_ergodic: int = 10000,
           n_classes: int = 2,
           decay: float = 0.001,
           depth: int = 1,
-          width: int = 50,
+          width: int = 100,
           data_seed: int = CONVERGENCE_SEED,
           model_seed: int = CONVERGENCE_SEED + 1,
           normalization: bool = False,
@@ -247,9 +256,9 @@ def several_main(result_dir: str='final_results/convergence',
           id_alpha: int = 0,
           compute_gradient: bool = False,
           bias: bool = False,
-          data_type: str = "cifar10",
+          data_type: str = "fashion-mnist",
           subset: float = 0.1,
-          resize: int = 32,
+          resize: int = 28,
           classes: list = None,
           stopping: bool = False):
 

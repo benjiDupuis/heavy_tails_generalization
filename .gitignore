@@ -4,6 +4,8 @@
 *.err.*
 *.out.*
 
+risk_analysis.batch
+
 heavy_tails/
 
 figures/
