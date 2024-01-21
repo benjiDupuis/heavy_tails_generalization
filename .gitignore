@@ -4,7 +4,7 @@
 *.err.*
 *.out.*
 
-risk_analysis.batch
+*.batch
 
 heavy_tails/
 
@@ -13,10 +13,11 @@ figures/
 final_results
 
 __pychache__/
+__pycache__
 **/__pychache__/
+last_point/__pycache__
+analysis/__pycache__
 *.pyc
-
-tests/
 
 heavy_tails/
 
@@ -25,3 +26,9 @@ results_parallel/
 tests_directory/
 
 levy_plots
+
+
+# launch specific scripts
+experiments_utils.py
+launcher_parallel.py
+run_exp.py

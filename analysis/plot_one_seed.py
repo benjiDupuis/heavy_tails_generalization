@@ -304,7 +304,7 @@ def analyze_one_seed(json_path: str):
         alpha = results[k]["alpha"]
         n_params = results[k]["n_params"]
         sigma = results[k]["sigma"]  # true value, without normalization by the dim
-        sigma_factor = results[k]["eta"]
+        sigma_factor = results[k]["sigma"] * np.sqrt(n_params)
         gradient = results[k]["gradient_mean"]
         gradient_unormalized = results[k]["gradient_mean_unormalized"]
 
@@ -348,7 +348,7 @@ def analyze_one_seed(json_path: str):
         normalization_tab[results[k]["id_alpha"]] = constant
 
         bound_tab.append(np.sqrt((constant * gradient * horizon * lr) / (n * np.power(sigma, alpha))))
-        acc_bound_tab.append(100. * np.sqrt((constant * horizon * gradient * lr**(1.))/\
+        acc_bound_tab.append(100. * np.sqrt((constant * horizon * lr**(1.))/\
                          (2. * n  * np.power(sigma, alpha))))
 
     # Plot everything
