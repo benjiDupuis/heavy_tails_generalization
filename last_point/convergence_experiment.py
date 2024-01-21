@@ -45,7 +45,8 @@ def main(result_dir: str='tests_directory',
           subset: float = 0.01,
           resize: int = 28,
           classes: list = None,
-          stopping: bool = False):
+          stopping: bool = False,
+          batch_size: int = -1):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
@@ -133,7 +134,8 @@ def main(result_dir: str='tests_directory',
                                     seed=model_seed,
                                     compute_gradients=compute_gradient,
                                     bias=bias,
-                                    stopping=stopping)
+                                    stopping=stopping,
+                                    batch_size=batch_size)
     
     if converged:
             logger.info('Experiment converged!')
@@ -237,18 +239,18 @@ def main(result_dir: str='tests_directory',
 alpha_list = [1.4, 1.6, 1.8, 2.]
 
 def several_main(result_dir: str='tests_directory',
-          horizon: int=0, 
+          horizon: int=20000, 
           d: int=10,
-          eta: float=0.01,
-          sigma: float=3.,
+          eta: float=0.1,
+          sigma: float=0.1,
           alpha_list: list=[1.4, 1.6, 1.8, 2.],
           n: int = 100,
           n_val: int = 1000,
-          n_ergodic: int = 10000,
+          n_ergodic: int = 1000,
           n_classes: int = 2,
           decay: float = 0.001,
-          depth: int = 1,
-          width: int = 100,
+          depth: int = 4,
+          width: int = 50,
           data_seed: int = CONVERGENCE_SEED,
           model_seed: int = CONVERGENCE_SEED + 1,
           normalization: bool = False,
@@ -256,11 +258,12 @@ def several_main(result_dir: str='tests_directory',
           id_alpha: int = 0,
           compute_gradient: bool = False,
           bias: bool = False,
-          data_type: str = "fashion-mnist",
-          subset: float = 0.1,
+          data_type: str = "mnist",
+          subset: float = 1.,
           resize: int = 28,
           classes: list = None,
-          stopping: bool = False):
+          stopping: bool = False,
+          batch_size: int = 64):
 
     exp_path = Path(result_dir) / str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0]
 
@@ -292,7 +295,8 @@ def several_main(result_dir: str='tests_directory',
                                     subset = subset,
                                     resize = resize,
                                     classes = classes,
-                                    stopping = stopping)
+                                    stopping = stopping,
+                                    batch_size=batch_size)
         
         acc_train_tabs.append(acc_train)
         acc_val_tabs.append(acc_val)

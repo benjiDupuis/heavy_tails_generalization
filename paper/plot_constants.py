@@ -27,7 +27,6 @@ def plot_F(output_dir: str = "paper"):
 
     alphas = np.linspace(1., 1.999, 100)
     F = poly_alpha(alphas) #To obtain the true figure
-    # F = test_constant(alphas)
 
     output_dir = Path(output_dir)
     if not output_dir.exists():
@@ -35,9 +34,9 @@ def plot_F(output_dir: str = "paper"):
     output_path = output_dir / "F_factor.png"
 
     plt.figure()
-    plt.plot(alphas, F, color="r", label=r"$\alpha \longmapsto P(\alpha)$")
-    plt.xlabel(r"$\alpha$")
-    plt.ylabel(r"$P(\alpha)$")
+    plt.plot(alphas, F, color="r", label=r"$\mathbf{\alpha \longmapsto P_\alpha}$")
+    plt.xlabel(r"$\mathbf{\alpha}$", weight="bold")
+    plt.ylabel(r"$\mathbf{P_\alpha}$", weight="bold")
     # plt.title(r"Factor $F(\alpha)$ with respect to the tail-index $\alpha$")
 
     logger.info(f"saving figure in {str(output_path)}")
@@ -67,13 +66,13 @@ def plot_dimension_dependence(output_dir: str = "paper"):
 
     plt.plot(alphas, 0.5 + alphas / 2., color = "k", label="Raj et al.")
     plt.plot(alphas, 1. - alphas / 2., color = "g", label="Ours")
-    plt.plot(alphas, 2. - alphas / 2., "--", color = "g", label=r"Ours if $C\propto \sqrt{d}$")
+    # plt.plot(alphas, 2. - alphas / 2., "--", color = "g", label=r"Ours if $C\propto \sqrt{d}$")
 
-    plt.plot(2. * np.ones(100), np.linspace(0., 1., 100), color="b",\
-     label="Known limit for Langevin dynamics", linewidth=5.)
+    # plt.plot(2. * np.ones(100), np.linspace(0., 1., 100), color="b",\
+    #  label="Known limit for Langevin dynamics", linewidth=5.)
 
-    plt.xlabel(r"$\alpha$")
-    plt.ylabel(r"$\frac{\text{rate in  }d}{\text{rate in  }n}$")
+    plt.xlabel(r"$\mathbf{\alpha}$")
+    plt.ylabel(r"$\mathbf{\frac{\text{rate in  }d}{\text{rate in  }n}}$")
 
     plt.legend()
 
@@ -83,5 +82,5 @@ def plot_dimension_dependence(output_dir: str = "paper"):
 
 
 if __name__ == "__main__":
-    fire.Fire(plot_F)
+    fire.Fire(plot_dimension_dependence)
 

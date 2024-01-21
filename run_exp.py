@@ -57,7 +57,9 @@ def main(args_):
                                 args_.resize,
                                 args_.classes,
                                 args_.stopping,
-                                args_.scale_sigma
+                                args_.scale_sigma,
+                                args_.batch_size,
+                                args_.id_eta
                                 )
 
 
@@ -93,12 +95,15 @@ if __name__ == '__main__':
     parser.add_argument('--normalization', type=int, default=0)
     parser.add_argument('--id_sigma', type=int, default=0)
     parser.add_argument('--id_alpha', type=int, default=0)
+    parser.add_argument("--id_eta", type=int, default=0)
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=1)
     parser.add_argument('--data_type', type=str, default="mnist")
     parser.add_argument('--stopping', type=int, default=0)
     parser.add_argument('--scale_sigma', type=int, default=1)
 
+    # New arg: batch size
+    parser.add_argument('--batch_size', type=int, default=-1)
 
     parser.add_argument('--subset', type=float, default=0.01)
     parser.add_argument('--resize', type=int, default=28)

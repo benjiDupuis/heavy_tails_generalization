@@ -10,6 +10,7 @@ from scipy.stats import kendalltau
 from tqdm import tqdm
 
 from analysis.kendall import granulated_kendalls_from_dict
+from last_point.utils import matrix_robust_mean
 
 
 def granulated_kendalls(json_path: str,
@@ -166,8 +167,9 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
     n = len(results.keys())
     # psi should be [alpha, seed]
 
-    psi_means = psi.mean(axis=1)
-    psi_deviations = np.sqrt(np.power((psi - psi_means[:, np.newaxis]), 2).sum(axis=1) / (n - 1))
+    # psi_means = psi.mean(axis=1)
+    # psi_deviations = np.sqrt(np.power((psi - psi_means[:, np.newaxis]), 2).sum(axis=1) / (n - 1))
+    psi_means, psi_deviations = matrix_robust_mean(psi)
 
     # we order varying_tab
     indices = np.argsort(varying_tab)
@@ -182,11 +184,14 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
                     psi_means + psi_deviations,
                     color = "g",
                     alpha = 0.25)
-    plt.plot(varying_tab, psi_means, color = "g",label=r"$\psi$")
+    plt.plot(varying_tab, psi_means, color = "g",label=r"$\mathbf{\tau}$")
     xlabel = "d" if key == "n_params" else r"$\sigma$"
-    plt.xlabel(xlabel)
-    # plt.xscale("log")
-    plt.ylabel("Kendall tau")
+    plt.xlabel(xlabel, weight="bold")
+    if key == "sigma":
+        plt.xscale("log")
+    plt.ylabel(r"Kendall $\mathbf{\tau}$", weight="bold")
+
+    plt.plot(varying_tab, np.zeros(len(varying_tab)), "--", color="r")
 
     output_dir = json_path.parent / (json_path.parent.stem + "_figures")
     if not output_dir.is_dir():
@@ -213,7 +218,7 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
         kendall_tab = kendall_tab[indices]
 
         plt.plot(varying_tab, kendall_tab, "--", color="k",\
-                    label=r"$\psi$ of the mean generalization error wrt $\alpha$")
+                    label=r"$\mathbf{\tau}$ of the mean generalization error wrt $\alpha$")
 
     plt.legend()
     plt.savefig(str(output_path))
@@ -239,7 +244,8 @@ def plot_alpha_kendall(json_path: str, key: str="n_params"):
     plt.scatter(varying_tab, kendall_tab)
     xlabel = "d" if key == "n_params" else "sigma"
     plt.xlabel(xlabel)
-    # plt.xscale("log")
+    if key == "sigma":
+        plt.xscale("log")
     plt.ylabel(r"Kendall tau $\psi$")
     # plt.legend()
     # plt.title("Correlation gen/alpha with in function of sigma")

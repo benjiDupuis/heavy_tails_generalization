@@ -69,7 +69,7 @@ def linear_regression(x_tab: np.ndarray,
 
 def robust_mean(tab: np.ndarray,
                 quantile_up: float = 0.15,
-                quantile_low: float = 0.05) -> float:
+                quantile_low: float = 0.0) -> float:
      
     assert quantile_up >= 0. and quantile_up < 0.5, quantile_up
     assert quantile_low >= 0. and quantile_low < 0.5, quantile_low

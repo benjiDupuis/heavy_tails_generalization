@@ -112,22 +112,12 @@ def run_one_simulation(horizon: int,
         # evaluation of the empirical loss
         # keep in mind that this is a full batch experiment
         opt.zero_grad()
-
-        if batch_size >= 1:
-            batch = np.random.choice(np.arange(x_train.shape[0]), batch_size, replace=False)
-        else:
-            batch = np.arange(x_train.shape[0])
-
-        out = model(x_train[batch,...])
+        out = model(x_train)
         # logger.info(f"out: {out}")
         # logger.info(f"means: {initialization}")
 
-        if k == 0:
-            logger.info(f"Shape of the output of the model: {out.shape}")
-            logger.info(f"Batch_size: {batch_size}")
-
-        # assert out.shape == (n, n_classes), out.shape
-        loss = crit(out, y_train[batch,...])
+        assert out.shape == (n, n_classes), out.shape
+        loss = crit(out, y_train)
 
         if torch.isnan(loss):
             logger.error('Loss has gone nan ❌')
@@ -138,11 +128,7 @@ def run_one_simulation(horizon: int,
 
         # Logging
         with torch.no_grad():
-            if batch_size >= 0:
-                out_acc = model(x_train)
-                accuracy_train = accuracy(out_acc, y_train)
-            else:
-                accuracy_train = accuracy(out, y_train)
+            accuracy_train = accuracy(out, y_train)
 
         if accuracy_train >= 1.:
             converged = True
@@ -183,12 +169,8 @@ def run_one_simulation(horizon: int,
 
     # Compute the estimated generalization at the end
     gen_tab = np.array(gen_tab)
-    if torch.isnan(loss):
-        generalization = gen_tab.mean()
-        gradient_mean = gradient_mean.mean() if compute_gradients else "non_computed"
-    else:
-        generalization = robust_mean(gen_tab)
-        gradient_mean = float(robust_mean(np.array(gradient_norm_list))) if compute_gradients else "non_computed"
+    generalization = robust_mean(gen_tab)
+    gradient_mean = float(robust_mean(np.array(gradient_norm_list))) if compute_gradients else "non_computed"
     gradient_mean_unormalized = float(np.array(gradient_norm_list).mean()) if compute_gradients else "non_computed"
 
     return float(generalization), loss_tab, accuracy_tab,\
@@ -254,9 +236,7 @@ def run_and_save_one_simulation(result_dir: str,
                         resize: int = 28,
                         classes: list = None,
                         stopping: bool = False,
-                        scale_sigma: bool = True,
-                        batch_size: int = -1,
-                        id_eta: int = 0):
+                        scale_sigma: bool = True):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
@@ -346,8 +326,7 @@ def run_and_save_one_simulation(result_dir: str,
                                     seed=model_seed,
                                     compute_gradients=compute_gradient,
                                     bias=bias,
-                                    stopping=stopping,
-                                    batch_size=batch_size)
+                                    stopping=stopping)
     
     if converged:
             logger.info('Experiment converged!')
@@ -403,18 +382,14 @@ def run_and_save_one_simulation(result_dir: str,
         "resize": resize,
         "scale_sigma": scale_sigma,
         "normalization": normalization,
-        "stopping": stopping,
-        "batch_size": batch_size,
-        "id_eta": id_eta
+        "stopping": stopping
     }
 
     result_dir = Path(result_dir)
     if not result_dir.is_dir():
         result_dir.mkdir()
 
-    eta_name = str(eta).replace(".","_")
-    rname = f"result_{id_sigma}_{id_alpha}_{width}_{eta_name}_{batch_size}"
-    result_path = (result_dir / rname).with_suffix(".json")
+    result_path = (result_dir / f"result_{id_sigma}_{id_alpha}_{width}").with_suffix(".json")
 
     logger.info(f"Saving results JSON file in {str(result_path)}")
 
