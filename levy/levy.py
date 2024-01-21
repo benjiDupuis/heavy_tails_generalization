@@ -54,7 +54,7 @@ def generate_levy_for_simulation(d: int,
     L = np.power(eta, 1. / alpha) * L
 
     assert L.shape == (n_iter, d),\
-        f"Shape of the returned levy increments shoul be (n_iter, d), got {L.shape}"
+        f"Shape of the returned levy increments should be (n_iter, d), got {L.shape}"
     return L
 
     

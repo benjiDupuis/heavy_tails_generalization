@@ -12,12 +12,16 @@ figures/
 
 final_results
 
+simulation.batch
+
 __pychache__/
 __pycache__
 **/__pychache__/
 last_point/__pycache__
 analysis/__pycache__
 *.pyc
+
+.pytest_cache
 
 heavy_tails/
 

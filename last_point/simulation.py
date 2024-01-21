@@ -2,6 +2,7 @@ import json
 import time
 from pathlib import Path
 
+import fire
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,8 +15,6 @@ from last_point.utils import accuracy
 from levy.levy import generate_levy_for_simulation
 
 from data.dataset import get_full_batch_data
-from last_point.gaussian_mixture import sample_standard_gaussian_mixture
-from last_point.iris import sample_iris_dataset
 from last_point.model import fcnn, fcnn_num_params
 from last_point.utils import robust_mean, poly_alpha
 
@@ -38,16 +37,28 @@ def run_one_simulation(horizon: int,
                         stopping: bool = False,
                         batch_size: int = -1):
     """
-    Data format should be (x_train, y_train, x_val, y_val)
-    stopping: whether or not stop the training at convergence,
-    in that case the time horizon is still used to avoid infinite loops
+    This is the main simulation script, the arguments are:
+    horizon: number of iterations
+    d: input_dimension, if needed
+    eta: learning random_centers
+    sigma: noise scale
+    alpha: tail-index to be used in the simulation
+    initialization: potential initialization of the model, not used in the current version of our work
+    data: Data format should be (x_train, y_train, x_val, y_val)
+    n_ergodic: how many iterations, at the end of training, are used to compute the average generalizatio error
+    n_classes: number of classes, if needed
+    decay: l2 regularization coefficient
+    depth: depth of the network
+    width: width of the network
+    seed: random seed
+    compute_gradients: whether or not compute the squared gradient gradient_norm_list
+    bias: whether or not use bais in the networks
+    stopping: whether or not stop the training at convergence
+    batch_size: batch size of training, -1 corresponds to full batch training
     """
 
     # Device
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
-    # HACK TODO
-    # This is a hack, the batch size experiment has to be properly implemented
 
     if batch_size < 0:
         logger.warning("No batch size")
@@ -60,21 +71,12 @@ def run_one_simulation(horizon: int,
     y_train = data[1].to(device)
     x_val = data[2].to(device)
     y_val = data[3].to(device)
-    #assert x_train.ndim == 2
-    #assert y_train.ndim == 1
-    #assert x_val.ndim == 2
-    #assert y_val.ndim == 1
     assert x_train.shape[0] == y_train.shape[0]
     assert x_train.shape[1] == x_val.shape[1]
 
     n = x_train.shape[0]
 
-    # Seed
-    # TODO: does this affect the generation of the levy processes?
-    # TODO: if it does, can we still trust the experimental results?
-    # TODO: how does the levy process generation use the seed?
     torch.manual_seed(seed)
-    # np.random.seed(seed)
     model = fcnn(d, width, depth, bias, n_classes)
     model.to(device)
 
@@ -91,8 +93,7 @@ def run_one_simulation(horizon: int,
     gradient_norm_list = []
 
     # Generate all noise
-    # First reinitialize the seed
-    # TODO: do something better than this hack and understand what is going on
+    # First reinitialize the seed, to avoid introducing additional bias in the simulations
     np.random.seed(int(str(time.time()).split(".")[1]))
     n_params = model.params_number()
     noise = sigma * generate_levy_for_simulation(n_params, \
@@ -119,8 +120,6 @@ def run_one_simulation(horizon: int,
             batch = np.arange(x_train.shape[0])
 
         out = model(x_train[batch,...])
-        # logger.info(f"out: {out}")
-        # logger.info(f"means: {initialization}")
 
         if k == 0:
             logger.info(f"Shape of the output of the model: {out.shape}")
@@ -231,10 +230,10 @@ def asymptotic_constant(alpha: float, d: float) -> float:
 
 def run_and_save_one_simulation(result_dir: str,
                         horizon: int, 
-                        d: int,
-                        eta: float,
-                        sigma: float,
-                        alpha: float,
+                        d: int=2,
+                        eta: float=0.01,
+                        sigma: float=1.,
+                        alpha: float=1.8,
                         n: int = 1000,
                         n_val: int = 1000,
                         n_ergodic: int = 100,
@@ -247,7 +246,7 @@ def run_and_save_one_simulation(result_dir: str,
                         normalization: bool = True,
                         id_sigma: int = 0,
                         id_alpha: int = 0,
-                        compute_gradient: bool = False,
+                        compute_gradient: bool = True,
                         bias: bool = False,
                         data_type: str = "mnist",
                         subset: float = 0.01,
@@ -257,28 +256,40 @@ def run_and_save_one_simulation(result_dir: str,
                         scale_sigma: bool = True,
                         batch_size: int = -1,
                         id_eta: int = 0):
-    """
-    id_sigma and id_alpha are only there to be copied in the final JSON file.
-    """
 
-    # HACK to avoid parsing issue of the classes
+    """
+    result_dir: where to save the results
+    horizon: number of iterations
+    d: input_dimension, unused in the current version of the work, as it is computed from the dataset
+    eta: learning random_centers
+    sigma: noise scale
+    alpha: tail index to be used in the simulations
+    n: unused in the current version of the work
+    n_val: unused in the current version of the work
+    n_ergodic: how many iterations, at the end of training, are used to compute the average generalizatio error
+    n_classes: number of classes, unused in the current version of the work
+    decay: l2 regularization coefficient
+    depth: depth of the network
+    width: width of the network
+    data_seed: random seed for data
+    model_seed: random seed for model: 
+    id_sigma: identifier of the noise scale being used
+    id_alpha: identifier of the tail index being used
+    compute_gradients: whether or not compute the squared gradient gradient_norm_list
+    bias: whether or not use bais in the networks
+    data_type: which dataset to use, can be "mnist" or "fashion-mnist", dataset script provides support for more datasets
+    subset: proportion of the chosen data to use (1=100%)
+    resize: optional resize of the images, if applicable, not used in our experiments
+    classes: potential selection of the classes to be used in the experiment, all classes are used by default
+    stopping: whether or not stop the training at convergence
+    sclae_sigma: whether or not to scale the noise scale by sqrt(n_params), according to our theory.
+    batch_size: batch size of training, -1 corresponds to full batch training
+    id_eta: identifier of the learning rate being used
+    """
+    
     if classes is not None:
         classes = [int(c) for c in classes]
-    
-    # Generate the data
-    # First the seed is set, so that each training will have the same data
-    if data_type == "gaussian":
-        np.random.seed(data_seed)
-        torch.manual_seed(data_seed)
-        n_per_class_train = n // n_classes
-        x_train, y_train, means = sample_standard_gaussian_mixture(d, n_per_class_train)
-        n_per_class_val = n_val // n_classes
-        x_val, y_val, _ = sample_standard_gaussian_mixture(d, n_per_class_val, 
-                                                            random_centers=False, 
-                                                            means_deterministic=means)
 
-        data = (x_train, y_train, x_val, y_val)
-        print(data)
 
     elif data_type == "mnist":
         np.random.seed(data_seed)
@@ -298,15 +309,6 @@ def run_and_save_one_simulation(result_dir: str,
         d = resize**2
         n_classes = 10 if classes is None else len(classes)
 
-    elif data_type == "iris":
-        np.random.seed(data_seed)
-        torch.manual_seed(data_seed)
-        data, info_on_iris = sample_iris_dataset()
-
-        n_classes = 3
-        d = info_on_iris[1]
-
-    # TODO remove this hack
     initialization = None 
 
     n_params = fcnn_num_params(d, width, depth, bias, n_classes)
@@ -321,11 +323,7 @@ def run_and_save_one_simulation(result_dir: str,
 
     # Normalization, if necessary
     normalization_factor = stable_normalization(alpha, n_params)
-    if normalization:
-        # sigma_simu = normalization_factor * sigma   # Too dangerous
-        logger.info(f"Normalization factor: {normalization_factor}")
-    else:
-        sigma_simu = sigma
+    sigma_simu = sigma
 
     K_constant = asymptotic_constant(alpha, n_params)
 
