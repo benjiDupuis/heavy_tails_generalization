@@ -6,7 +6,7 @@ import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
-from last_point.utils import robust_mean
+from last_point.utils import robust_mean, vector_robust_mean
 
 
 def average_results(all_results: dict) -> dict:
@@ -89,33 +89,62 @@ def average_results(all_results: dict) -> dict:
 
         n_seed = len(acc_gen_list)
 
-        # mean
-        dict_of_lists[key_id]["acc_generalization"] = acc_gen_list.mean()
-        # dict_of_lists[key_id]["acc_gen_normalized"] = acc_gen_list.mean()
-        dict_of_lists[key_id]["loss_generalization"] = loss_gen_list.mean()
-        dict_of_lists[key_id]["gradient_mean"] = gradient_list.mean()
-        dict_of_lists[key_id]["gradient_mean_unormalized"] = gradient_list_unormalized.mean()
-        
+        # Robust mean estimation and median estimation
 
-        # standard deviation
         if n_seed >= 2:
-            deviation = np.sqrt(((acc_gen_list - acc_gen_list.mean())**2).sum() / (n_seed - 1))
-            dict_of_lists[key_id]["acc_generalization_deviation"] = deviation
-            # deviation = np.sqrt(((acc_gen_norm_list - acc_gen_norm_list.mean())**2).sum() / (n_seed - 1))
-            # dict_of_lists[key_id]["acc_gen_norm_deviation"] = deviation
-            deviation = np.sqrt(((loss_gen_list - loss_gen_list.mean())**2).sum() / (n_seed - 1))
-            dict_of_lists[key_id]["loss_generalization_deviation"] = deviation
-            deviation = np.sqrt(((gradient_list - gradient_list.mean())**2).sum() / (n_seed - 1))
-            dict_of_lists[key_id]["gradient_deviation"] = deviation
-            deviation = np.sqrt(((gradient_list_unormalized - gradient_list_unormalized.mean())**2).sum() / (n_seed - 1))
-            dict_of_lists[key_id]["gradient_deviation_unormalized"] = deviation
+            # median
+            dict_of_lists[key_id]["acc_generalization_median"] = np.quantile(acc_gen_list, 0.5)
+            # dict_of_lists[key_id]["acc_gen_normalized"] = acc_gen_list.mean()
+            dict_of_lists[key_id]["loss_generalization_median"] = np.quantile(loss_gen_list, 0.5)
+            dict_of_lists[key_id]["gradient_median"] = np.quantile(gradient_list, 0.5)
+            dict_of_lists[key_id]["gradient_unormalized_median"] = np.quantile(gradient_list_unormalized, 0.5)
+
+            # Robust mean and deviation estimation
+            m, s = vector_robust_mean(acc_gen_list)
+            dict_of_lists[key_id]["acc_generalization"] = m
+            dict_of_lists[key_id]["acc_generalization_deviation"] = s
+
+            m, s = vector_robust_mean(loss_gen_list)
+            dict_of_lists[key_id]["loss_generalization"] = m
+            dict_of_lists[key_id]["loss_generalization_deviation"] = s
+
+            m, s = vector_robust_mean(gradient_list)
+            dict_of_lists[key_id]["gradient_mean"] = m
+            dict_of_lists[key_id]["gradient_deviation"] = s
+
+            m, s = vector_robust_mean(gradient_list_unormalized)
+            dict_of_lists[key_id]["gradient_mean_unormalized"] = m
+            dict_of_lists[key_id]["gradient_deviation_unormalized"] = s
+
+
         else:
+            # mean
+            dict_of_lists[key_id]["acc_generalization"] = acc_gen_list.mean()
+            # dict_of_lists[key_id]["acc_gen_normalized"] = acc_gen_list.mean()
+            dict_of_lists[key_id]["loss_generalization"] = loss_gen_list.mean()
+            dict_of_lists[key_id]["gradient_mean"] = gradient_list.mean()
+            dict_of_lists[key_id]["gradient_mean_unormalized"] = gradient_list_unormalized.mean()
+        
             deviation = None
             dict_of_lists[key_id]["acc_generalization_deviation"] = deviation
             # dict_of_lists[key_id]["acc_gen_norm_deviation"] = deviation
             dict_of_lists[key_id]["loss_generalization_deviation"] = deviation
             dict_of_lists[key_id]["gradient_deviation"] = deviation
             dict_of_lists[key_id]["gradient_deviation_unormalized"] = deviation
+
+    # # standard deviation
+        # if n_seed >= 2:
+        #     deviation = np.sqrt(((acc_gen_list - acc_gen_list.mean())**2).sum() / (n_seed - 1))
+        #     dict_of_lists[key_id]["acc_generalization_deviation"] = deviation
+        #     # deviation = np.sqrt(((acc_gen_norm_list - acc_gen_norm_list.mean())**2).sum() / (n_seed - 1))
+        #     # dict_of_lists[key_id]["acc_gen_norm_deviation"] = deviation
+        #     deviation = np.sqrt(((loss_gen_list - loss_gen_list.mean())**2).sum() / (n_seed - 1))
+        #     dict_of_lists[key_id]["loss_generalization_deviation"] = deviation
+        #     deviation = np.sqrt(((gradient_list - gradient_list.mean())**2).sum() / (n_seed - 1))
+        #     dict_of_lists[key_id]["gradient_deviation"] = deviation
+        #     deviation = np.sqrt(((gradient_list_unormalized - gradient_list_unormalized.mean())**2).sum() / (n_seed - 1))
+        #     dict_of_lists[key_id]["gradient_deviation_unormalized"] = deviation
+        # else:
     
     if n_seed == 1:
             logger.warning("Only 1 seed found")
@@ -158,7 +187,9 @@ def merge_json(result_dir: str):
         # Create the resulting dict
         seed_results = {}
 
-        json_list = [p for p in seed.rglob("*.json") if p.stem.startswith("result") and "seed" not in p.stem]
+        json_list = [p for p in seed.rglob("*.json") if p.stem.startswith("result") \
+                        and "seed" not in p.stem
+                         ]
         n = 0 
         for p in json_list:
             with open(str(p), "r") as json_file:

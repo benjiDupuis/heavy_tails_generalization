@@ -76,12 +76,36 @@ def robust_mean(tab: np.ndarray,
 
     assert tab.ndim == 1, tab.shape
 
+    if len(tab) < 4:
+        return tab.mean()
+
     low_quantile = np.quantile(tab, quantile_low)
     high_quantile = np.quantile(tab, 1. - quantile_up)
 
     indices = (tab >= low_quantile) * (tab <= high_quantile)
 
     return tab[indices].mean()
+
+
+def vector_robust_mean(tab: np.ndarray, quantile: float = 0.0):
+    """
+    tab should be 1d, of len n_seed
+    """ 
+    if quantile > 0.:
+        est_tab = tab[
+            (tab > np.quantile(tab, quantile)) *\
+            (tab < np.quantile(tab, 1. - quantile))
+        ]
+    else:
+        est_tab = tab.copy()
+    n = len(est_tab)
+    m = est_tab.mean()
+    c = est_tab - m
+    s = np.sqrt(np.power(c, 2).sum() / (n-1))
+
+    return m, s
+
+
 
 
 

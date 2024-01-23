@@ -345,8 +345,9 @@ def regressions_several_seeds_dim(json_path: str):
         plt.plot(alphas_gt, alphas_gt, color = "r", label=r"Ground truth $\alpha$")
         # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
         plt.plot(alpha_tab, alpha_means, color = "b",label=r"Estimated $\hat{\alpha}$")
-        plt.xlabel(r"$\mathbf{\alpha}$", weight="bold")
-        plt.ylabel(r"$\mathbf{\hat{\alpha}}$", weight="bold")
+        plt.xlabel(r"Estimated tail index $\mathbf{\alpha}$", weight="bold")
+        plt.ylabel(r"Tail index $\mathbf{\hat{\alpha}}$", weight="bold")
+        plt.grid()
         plt.legend()
 
         plt.fill_between(alpha_tab, \

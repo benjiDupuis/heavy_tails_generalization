@@ -94,7 +94,7 @@ def granulated_kendalls(json_path: str,
     return final_results
         
 
-def alpha_kendall(results: dict, key: str = "n_params"):
+def alpha_kendall(results: dict, key: str = "n_params", gen_key="acc_generalization"):
     """
     dict is one seed, e.g. average_results for instance
     """
@@ -128,7 +128,7 @@ def alpha_kendall(results: dict, key: str = "n_params"):
             results[key]["alpha"]
         )
         fixed_results[results[key][varying_id]]["gen"].append(
-            results[key]["acc_generalization"]
+            results[key][gen_key]
         )
         fixed_results[results[key][varying_id]][varying] = results[key][varying]
 
@@ -185,13 +185,15 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
                     color = "g",
                     alpha = 0.25)
     plt.plot(varying_tab, psi_means, color = "g",label=r"$\mathbf{\tau}$")
-    xlabel = "d" if key == "n_params" else r"$\sigma$"
+    xlabel = r"Number of parameters $\mathbf{d}$" if key == "n_params" else r"$\sigma$"
     plt.xlabel(xlabel, weight="bold")
     if key == "sigma":
         plt.xscale("log")
-    plt.ylabel(r"Kendall $\mathbf{\tau}$", weight="bold")
+    plt.ylabel(r"Kendall $\mathbf{\tau}$ between accuracy gap and $\mathbf{\alpha}$", weight="bold")
 
     plt.plot(varying_tab, np.zeros(len(varying_tab)), "--", color="r")
+
+    plt.grid()
 
     output_dir = json_path.parent / (json_path.parent.stem + "_figures")
     if not output_dir.is_dir():
@@ -210,7 +212,8 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
         with open(str(av_path), "r") as json_file:
             results = json.load(json_file)
 
-        varying_tab, kendall_tab = alpha_kendall(results, key=key)
+        varying_tab, kendall_tab = alpha_kendall(results,\
+                                                 key=key)
 
         # we order varying_tab
         indices = np.argsort(varying_tab)

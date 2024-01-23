@@ -135,8 +135,10 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
                      c=alpha_values,
                      cmap=color_map)
     cbar = plt.colorbar(sc)
-    cbar.set_label(r"$\mathbf{\alpha}$")
+    cbar.set_label(r"$\mathbf{\alpha}$", weight="bold")
+    plt.grid()
     plt.xlabel(xlabel, weight="bold")
+    plt.ylabel("Estimated bound", weight="bold")
     # plt.title("estimated bound versus generalization")
     logger.info(f"Saving a bound plot in {str(output_path)}")
     plt.savefig(str(output_path))
@@ -154,14 +156,25 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
 
     logger.info(f"Saving all figures in {output_dir}")
 
+    # Actually, in our case, sigma is n_params, but it works the same
     for s in tqdm(range(n_sigma)):
 
         plt.figure()
-        if deviation_grid is not None:
-            plt.errorbar(alpha_tab, gen_grid[s, :], yerr=deviation_grid[s, :])
-        else:
-            plt.scatter(alpha_tab, gen_grid[s, :])          
-        # plt.title(f'Generalization error for sigma = {sigma_tab[s]}')            
+        plt.plot(alpha_tab, gen_grid[s, :], label='Mean accuracy gap', color="r")
+        plt.fill_between(alpha_tab,\
+                    gen_grid[s, :] - deviation_grid[s, :],\
+                    gen_grid[s, :] + deviation_grid[s, :],
+                    color="r",
+                    alpha=0.25)
+        # if deviation_grid is not None:
+        #     plt.errorbar(alpha_tab, gen_grid[s, :], deviation_grid[s, :])
+        # else:
+        #     plt.scatter(alpha_tab, gen_grid[s, :])          
+        # plt.title(f'Generalization error for sigma = {sigma_tab[s]}')
+        plt.grid()
+        plt.xlabel(r"Tail index $\alpha$", weight="bold")
+        plt.ylabel("Accuracy gap (%)", weight="bold")
+        plt.legend()            
 
         # Saving the figure
         fig_name = (f"sigma_{sigma_tab[s]}").replace(".","_")
@@ -185,22 +198,22 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
             plt.savefig(str(output_path))
             plt.close()
     
-    # Finally: the linear regressions
-    alpha_reg, correlation_reg = all_linear_regression(
-        gen_grid,
-        sigma_tab,
-        alpha_tab
-    )
-    if all(alpha_reg[k] is not None for k in range(len(alpha_tab))):
-        alpha_reg_path = (output_dir / "alpha_regression").with_suffix(".png")
-        plt.figure()
-        plt.plot(np.linspace(1,2, 100), np.linspace(1,2,100), color = "r")
-        plt.scatter(alpha_tab, alpha_reg)
-        # plt.title("Regression of alpha from the generalization bound")
-        plt.savefig(str(alpha_reg_path))
-        plt.close()
-    else:
-        logger.warning("Linear regression did not work, probably due to negative generalization values")
+    # # Finally: the linear regressions
+    # alpha_reg, correlation_reg = all_linear_regression(
+    #     gen_grid,
+    #     sigma_tab,
+    #     alpha_tab
+    # )
+    # if all(alpha_reg[k] is not None for k in range(len(alpha_tab))):
+    #     alpha_reg_path = (output_dir / "alpha_regression").with_suffix(".png")
+    #     plt.figure()
+    #     plt.plot(np.linspace(1,2, 100), np.linspace(1,2,100), color = "r")
+    #     plt.scatter(alpha_tab, alpha_reg)
+    #     # plt.title("Regression of alpha from the generalization bound")
+    #     plt.savefig(str(alpha_reg_path))
+    #     plt.close()
+    # else:
+    #     logger.warning("Linear regression did not work, probably due to negative generalization values")
 
 
 def plot_gen_dim(json_path: str):
@@ -275,6 +288,13 @@ def analyze_one_seed(json_path: str):
     example_key = list(results.keys())[0]
     deviations: bool = ("acc_generalization_deviation" in list(results[example_key].keys()))
 
+    # determine n_width
+    d_list = []
+    for k in results.keys():
+        if results[k]["n_params"] not in d_list:
+            d_list.append(results[k]["n_params"])
+    n_width = len(d_list)
+    
     # Collect n_alpha and n_sigma
     n_sigma = 1 + max(results[k]["id_sigma"] for k in results.keys())
     n_alpha = 1 + max(results[k]["id_alpha"] for k in results.keys())
@@ -284,9 +304,12 @@ def analyze_one_seed(json_path: str):
     sigma_factor_tab = np.zeros(n_sigma)
     alpha_tab = np.zeros(n_alpha)
     normalization_tab = np.zeros(n_alpha)
-    acc_gen_grid = np.zeros((n_sigma, n_alpha))
-    gradient_grid = np.zeros((n_sigma, n_alpha))
-    acc_gen_grid_deviation = np.zeros((n_sigma, n_alpha)) if deviations else None 
+    acc_gen_grid = np.zeros((n_width, n_alpha))
+    gradient_grid = np.zeros((n_width, n_alpha))
+    acc_gen_grid_deviation = np.zeros((n_width, n_alpha)) if deviations else None 
+
+    n_params_dict = {} # dict n_params: an index used for plotting
+    n_params_idx = 0
 
     gen_tab = []
     bound_tab = []
@@ -304,9 +327,14 @@ def analyze_one_seed(json_path: str):
         alpha = results[k]["alpha"]
         n_params = results[k]["n_params"]
         sigma = results[k]["sigma"]  # true value, without normalization by the dim
-        sigma_factor = results[k]["eta"]
+        sigma_factor = results[k]["sigma"] * np.sqrt(n_params)
         gradient = results[k]["gradient_mean"]
         gradient_unormalized = results[k]["gradient_mean_unormalized"]
+
+        if n_params not in n_params_dict.keys():
+            n_params_dict[n_params] = n_params_idx
+            n_params_idx += 1
+
 
         # TODO: this is ugly and suboptimal, find better
         sigma_tab[results[k]["id_sigma"]] = sigma
@@ -314,20 +342,36 @@ def analyze_one_seed(json_path: str):
         alpha_tab[results[k]["id_alpha"]] = results[k]["alpha"]
 
         acc_gen_grid[
-            results[k]["id_sigma"],
+            n_params_dict[n_params],
             results[k]["id_alpha"]
         ] = results[k]["acc_generalization"]
 
         gradient_grid[
-            results[k]["id_sigma"],
+            n_params_dict[n_params],
             results[k]["id_alpha"]
         ] = results[k]["gradient_mean"]
 
         if deviations:
             acc_gen_grid_deviation[
-                    results[k]["id_sigma"],
+                    n_params_dict[n_params],
                     results[k]["id_alpha"]
                 ] = results[k]["acc_generalization_deviation"]
+
+        # acc_gen_grid[
+        #     results[k]["id_sigma"],
+        #     results[k]["id_alpha"]
+        # ] = results[k]["acc_generalization"]
+
+        # gradient_grid[
+        #     results[k]["id_sigma"],
+        #     results[k]["id_alpha"]
+        # ] = results[k]["gradient_mean"]
+
+        # if deviations:
+        #     acc_gen_grid_deviation[
+        #             results[k]["id_sigma"],
+        #             results[k]["id_alpha"]
+        #         ] = results[k]["acc_generalization_deviation"]
 
 
         # Collect generalization error ad sigma and alpha, for colored plots
@@ -351,19 +395,23 @@ def analyze_one_seed(json_path: str):
         acc_bound_tab.append(100. * np.sqrt((constant * horizon * gradient * lr**(1.))/\
                          (2. * n  * np.power(sigma, alpha))))
 
+    n_params_tab = list(n_params_dict.keys())
+    
     # Plot everything
     output_dir = json_path.parent / (json_path.parent.stem + "_figures")
     if not output_dir.is_dir():
         output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving figures in {str(output_dir)}")
 
-    plot_one_seed(acc_gen_grid, sigma_factor_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)
-    # plot_one_seed(acc_gen_grid / np.sqrt(normalization_tab[np.newaxis, :]), sigma_tab, alpha_tab, str(output_dir))
     plot_bound(gen_tab, bound_tab, output_dir, sigma_factor_values,\
                  alpha_values, log_scale=False, xlabel="Loss error (cross entropy)")
     plot_bound(acc_tab, acc_bound_tab, output_dir, sigma_factor_values,\
                 alpha_values, log_scale=False, stem="accuracy")
 
+
+    plot_one_seed(acc_gen_grid, n_params_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)
+    # plot_one_seed(acc_gen_grid / np.sqrt(normalization_tab[np.newaxis, :]), sigma_tab, alpha_tab, str(output_dir))
+    
 
 def main(json_path: str, mode: str="all_plots"):
 

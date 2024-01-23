@@ -13,7 +13,8 @@ from last_point.model import fcnn
 from last_point.utils import accuracy
 from levy.levy import generate_levy_for_simulation
 
-from data.dataset import get_full_batch_data
+from data.dataset import get_full_batch_data, get_data_simple
+from last_point.eval import eval
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
 from last_point.iris import sample_iris_dataset
 from last_point.model import fcnn, fcnn_num_params
@@ -26,7 +27,7 @@ def run_one_simulation(horizon: int,
                         sigma: float,
                         alpha: float,
                         initialization: torch.Tensor,
-                        data: Tuple[torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor],
+                        data,
                         n_ergodic: int = 100,
                         n_classes: int = 2,
                         decay: float = 0.,
@@ -38,7 +39,7 @@ def run_one_simulation(horizon: int,
                         stopping: bool = False,
                         batch_size: int = -1):
     """
-    Data format should be (x_train, y_train, x_val, y_val)
+    Data format should be (x_train, y_train, x_val, y_val), all dataloaders
     stopping: whether or not stop the training at convergence,
     in that case the time horizon is still used to avoid infinite loops
     """
@@ -53,26 +54,20 @@ def run_one_simulation(horizon: int,
         logger.warning("No batch size")
     else:
         logger.warning(f"Batch size is {batch_size}")
+    logger.info("Batch simulation script")
 
-    # Define data
-    assert len(data) == 4, len(data)
-    x_train = data[0].to(device)
-    y_train = data[1].to(device)
-    x_val = data[2].to(device)
-    y_val = data[3].to(device)
-    #assert x_train.ndim == 2
-    #assert y_train.ndim == 1
-    #assert x_val.ndim == 2
-    #assert y_val.ndim == 1
-    assert x_train.shape[0] == y_train.shape[0]
-    assert x_train.shape[1] == x_val.shape[1]
+    # data
+    train_loader = data[0]
+    test_loader_eval = data[1]
+    train_loader_eval = data[2]
 
-    n = x_train.shape[0]
+    def cycle_loader(dataloader):
+        while 1:
+            for data in dataloader:
+                yield data
 
-    # Seed
-    # TODO: does this affect the generation of the levy processes?
-    # TODO: if it does, can we still trust the experimental results?
-    # TODO: how does the levy process generation use the seed?
+    circ_train_loader = cycle_loader(train_loader)
+
     torch.manual_seed(seed)
     # np.random.seed(seed)
     model = fcnn(d, width, depth, bias, n_classes)
@@ -84,8 +79,11 @@ def run_one_simulation(horizon: int,
                            lr = eta,
                            weight_decay = decay)
     crit = nn.CrossEntropyLoss().to(device)
+    crit_unreduced = nn.CrossEntropyLoss(reduction="none").to(device)
 
     loss_tab = []
+    batch_loss_tab = []
+    batch_acc_tab = []
     gen_tab = []
     accuracy_tab = []
     gradient_norm_list = []
@@ -95,29 +93,36 @@ def run_one_simulation(horizon: int,
     # TODO: do something better than this hack and understand what is going on
     np.random.seed(int(str(time.time()).split(".")[1]))
     n_params = model.params_number()
-    noise = sigma * generate_levy_for_simulation(n_params, \
-                                         horizon + n_ergodic,
-                                         alpha,
-                                         eta)
-    assert noise.shape == (horizon + n_ergodic, n_params),\
-          (noise.shape, (horizon + n_ergodic, n_params))
+    # noise = sigma * generate_levy_for_simulation(n_params, \
+    #                                      horizon + n_ergodic,
+    #                                      alpha,
+    #                                      eta)
+    # assert noise.shape == (horizon + n_ergodic, n_params),\
+    #       (noise.shape, (horizon + n_ergodic, n_params))
 
     converged = False
 
-    logger.info(f"Shape of training tensor: {x_train.shape}")
-
     # Loop
-    for k in range(horizon + n_ergodic):
+    # for k in range(horizon + n_ergodic):
+    for k, (x,y) in enumerate(circ_train_loader):
+
+        if k >= horizon + n_ergodic:
+            break
+
+        if len(gen_tab) == n_ergodic:
+            break
+
+        x, y = x.to(device), y.to(device)
 
         # evaluation of the empirical loss
         # keep in mind that this is a full batch experiment
         opt.zero_grad()
-        out = model(x_train)
-        # logger.info(f"out: {out}")
-        # logger.info(f"means: {initialization}")
+        out = model(x)
 
-        assert out.shape == (n, n_classes), out.shape
-        loss = crit(out, y_train)
+        if k == 0:
+            assert x.shape[0] == batch_size, (x.shape[0], batch_size)
+
+        loss = crit(out, y)
 
         if torch.isnan(loss):
             logger.error('Loss has gone nan ❌')
@@ -126,46 +131,39 @@ def run_one_simulation(horizon: int,
         # calculate the gradients
         loss.backward()
 
-        # Logging
-        with torch.no_grad():
-            accuracy_train = accuracy(out, y_train)
+        # if accuracy_train >= 1.:
+        #     converged = True
 
-        if accuracy_train >= 1.:
-            converged = True
+        if k % 1000 == 0:
+            logger.info(f"Iteration number {k}, loss: {loss.item()}")
+        batch_loss_tab.append(loss.item())
+        batch_acc_tab.append(accuracy(out, y))
 
         # Validation if we are after the time horizon
         loss_val = None
         if k >= horizon or (converged and stopping):
+
             with torch.no_grad():
-                out_val = model(x_val)
-                loss_val = crit(out_val, y_val).item()
-                loss_tab.append((loss.item(), loss_val))
-                accuracy_val = None
+                te_hist, *_ = eval(test_loader_eval, model, crit_unreduced, opt)
+                tr_hist, *_ = eval(train_loader_eval, model, crit_unreduced, opt)
 
-        with torch.no_grad():
-            if k >= horizon or (converged and stopping):
-                gen_tab.append(loss_val - loss.item())
-                accuracy_val = accuracy(out_val, y_val)
-                accuracy_tab.append((accuracy_train, accuracy_val))
-
-        if k == 0:
-            logger.debug(f"Initial train accuracy: {accuracy_train}")
+            loss_tab.append((tr_hist[0], te_hist[0]))
+            accuracy_tab.append((tr_hist[1], te_hist[1]))
+            gen_tab.append(te_hist[0] - tr_hist[0])
 
         # Gradient step, put there to ensure initial acc are not corrupted
         opt.step()
 
-        # if compute_gradients and (k >= horizon or (converged and stopping)):
-        #     with torch.no_grad():
-                # gradient_norm_list.append(model.gradient_l2_squared_norm())
-        gradient_norm_list.append(model.gradient_l2_squared_norm())
-        
+        gradient_norm_list.append(model.gradient_l2_squared_norm())    
 
         # Adding the levy noise
+        noise = sigma * generate_levy_for_simulation(n_params, \
+                                         1,
+                                         alpha,
+                                         eta)
         with torch.no_grad():
-            model.add_noise(torch.from_numpy(noise[k]).to(device))
+            model.add_noise(torch.from_numpy(noise[0]).to(device))
 
-        if len(gen_tab) == n_ergodic:
-            break
 
     # Compute the estimated generalization at the end
     gen_tab = np.array(gen_tab)
@@ -174,7 +172,7 @@ def run_one_simulation(horizon: int,
     gradient_mean_unormalized = float(np.array(gradient_norm_list).mean()) if compute_gradients else "non_computed"
 
     return float(generalization), loss_tab, accuracy_tab,\
-          None, gradient_mean, converged, gradient_mean_unormalized
+          None, gradient_mean, converged, gradient_mean_unormalized, batch_acc_tab
 
 
 def stable_normalization(alpha: float, d: float) -> float:
@@ -236,34 +234,26 @@ def run_and_save_one_simulation(result_dir: str,
                         resize: int = 28,
                         classes: list = None,
                         stopping: bool = False,
-                        scale_sigma: bool = True):
+                        scale_sigma: bool = True,
+                        batch_size: int = 32,
+                        id_eta: int = 0):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
+
+    logger.info("BATCH simulation")
+    logger.info(f"Batch size: {batch_size}")
+    assert batch_size >= 1, batch_size
 
     # HACK to avoid parsing issue of the classes
     if classes is not None:
         classes = [int(c) for c in classes]
     
-    # Generate the data
-    # First the seed is set, so that each training will have the same data
-    if data_type == "gaussian":
-        np.random.seed(data_seed)
-        torch.manual_seed(data_seed)
-        n_per_class_train = n // n_classes
-        x_train, y_train, means = sample_standard_gaussian_mixture(d, n_per_class_train)
-        n_per_class_val = n_val // n_classes
-        x_val, y_val, _ = sample_standard_gaussian_mixture(d, n_per_class_val, 
-                                                            random_centers=False, 
-                                                            means_deterministic=means)
-
-        data = (x_train, y_train, x_val, y_val)
-        print(data)
 
     elif data_type == "mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
-        data = get_full_batch_data("mnist", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
+        data = get_data_simple("mnist", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2
@@ -272,19 +262,11 @@ def run_and_save_one_simulation(result_dir: str,
     elif data_type == "fashion-mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
-        data = get_full_batch_data("fashion-mnist", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
+        data = get_data_simple("fashion-mnist", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2
         n_classes = 10 if classes is None else len(classes)
-
-    elif data_type == "iris":
-        np.random.seed(data_seed)
-        torch.manual_seed(data_seed)
-        data, info_on_iris = sample_iris_dataset()
-
-        n_classes = 3
-        d = info_on_iris[1]
 
     # TODO remove this hack
     initialization = None 
@@ -311,7 +293,7 @@ def run_and_save_one_simulation(result_dir: str,
 
     generalization, _, accuracy_tab,\
           _, gradient_mean, converged, \
-          gradient_mean_unormalized = run_one_simulation(horizon, 
+          gradient_mean_unormalized, _ = run_one_simulation(horizon, 
                                     d,
                                     eta,
                                     sigma_simu,
@@ -326,7 +308,8 @@ def run_and_save_one_simulation(result_dir: str,
                                     seed=model_seed,
                                     compute_gradients=compute_gradient,
                                     bias=bias,
-                                    stopping=stopping)
+                                    stopping=stopping,
+                                    batch_size=batch_size)
     
     if converged:
             logger.info('Experiment converged!')
@@ -341,13 +324,13 @@ def run_and_save_one_simulation(result_dir: str,
     accuracy_error_tab_np = np.array([
         accuracy_error_tab[k][0] - accuracy_error_tab[k][1] for k in range(n_ergodic)
     ])
-    accuracy_error = float(100. * robust_mean(accuracy_error_tab_np))
+    accuracy_error = float(robust_mean(accuracy_error_tab_np))
 
     # Correct value of n
-    n = data[0].shape[0]
-    n_val = data[2].shape[0]
+    n = len(data[0])
+    n_val = len(data[2])
 
-    bound = np.sqrt(K_constant * gradient_mean / (n * decay * np.power(sigma, alpha)))
+    bound = np.sqrt(K_constant * horizon * gradient_mean / (n * np.power(sigma, alpha)))
 
     result_dict = {
         "horizon": horizon, 
@@ -376,24 +359,27 @@ def run_and_save_one_simulation(result_dir: str,
         "bias": bias,
         "estimated_bound": bound,
         "converged": converged,
-        'final_train_accuracy': accuracy_tab[-1][0].item(),
+        'final_train_accuracy': accuracy_tab[-1][0],
         "acc_gen_normalized": accuracy_error / np.sqrt(poly_alpha(alpha)),
         "gradient_mean_unormalized": gradient_mean_unormalized,
         "resize": resize,
         "scale_sigma": scale_sigma,
         "normalization": normalization,
-        "stopping": stopping
+        "stopping": stopping,
+        "batch_size": batch_size,
+        "id_eta": id_eta
     }
 
     result_dir = Path(result_dir)
     if not result_dir.is_dir():
         result_dir.mkdir()
 
-    result_path = (result_dir / f"result_{id_sigma}_{id_alpha}_{width}").with_suffix(".json")
+    result_path = (result_dir / f"result_{id_sigma}_{id_alpha}_{width}_{batch_size}_{id_eta}").with_suffix(".json")
 
     logger.info(f"Saving results JSON file in {str(result_path)}")
 
     with open(str(result_path), "w") as result_file:
         json.dump(result_dict, result_file, indent = 2)
+    logger.info(json.dumps(result_dict, indent=2))
 
     
