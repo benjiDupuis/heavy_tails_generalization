@@ -188,7 +188,7 @@ if __name__ == '__main__':
     # Parameters which are launcher specific
     # parser.add_argument('--grid_size', type=int, default=10)
     parser.add_argument('--seed', type=int, default=SEED)
-    parser.add_argument('--num_seeds_per_hparam', type=int, default=1)    
+    parser.add_argument('--num_seeds_per_hparam', type=int, default=10)    
 
     parser.add_argument('--result_dir', type=str, default=RESULT_DIR)
 

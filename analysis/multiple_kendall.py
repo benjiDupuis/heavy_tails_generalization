@@ -185,7 +185,7 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
                     color = "g",
                     alpha = 0.25)
     plt.plot(varying_tab, psi_means, color = "g",label=r"$\mathbf{\tau}$")
-    xlabel = r"Number of parameters $\mathbf{d}$" if key == "n_params" else r"$\sigma$"
+    xlabel = r"Number of parameters $\mathbf{d}$" if key == "n_params" else r"$\mathbf{\sigma_1}$"
     plt.xlabel(xlabel, weight="bold")
     if key == "sigma":
         plt.xscale("log")

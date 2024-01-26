@@ -8,7 +8,7 @@ import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
-from last_point.utils import linear_regression, all_linear_regression
+from last_point.utils import linear_regression, all_linear_regression, regression_selection
 from last_point.simulation import asymptotic_constant
 from last_point.utils import poly_alpha, matrix_robust_mean
 
@@ -300,18 +300,22 @@ def regressions_several_seeds_dim(json_path: str):
             gen_corrected_tab = np.array(values[a]["gen_corrected"])
             alpha_tab[a] = values[a]["alpha"]
 
-            # indices = (gen_tab > 0.) * (params_tab < np.quantile(params_tab, 0.9))
-            indices = (gen_tab > 0.)
+            indices = (gen_tab > 0.) 
+            # indices = (gen_tab > np.quantile(gen_tab, 0.1)) * (gen_tab < np.quantile(gen_tab, 0.9))
 
             if len(np.where(indices==1)[0]) > 1:
                 reg = linear_regression(np.log(params_tab[indices]),
                                                     np.log(gen_tab[indices]))
+                # reg = regression_selection(params_tab[indices], gen_tab[indices])
+                # logger.info(reg)
                 alpha_regressions[a, seed_id] = 2. - 4. * reg      
             else:
                 logger.debug(f"No indices for alpha={alpha_tab[a]}")
                 alpha_regressions[a, seed_id] = None
 
             if len(np.where(indices==1)[0]) > 1:
+                # reg = regression_selection(params_tab[indices], gen_corrected_tab[indices])
+
                 reg = linear_regression(np.log(params_tab[indices]),
                                                     np.log(gen_corrected_tab[indices]))
                 alpha_regressions_corrected[a, seed_id] = 2. - 4. * reg      
@@ -319,46 +323,44 @@ def regressions_several_seeds_dim(json_path: str):
                 logger.debug(f"No indices for alpha={alpha_tab[a]}")
                 alpha_regressions[a, seed_id] = None
 
-    alpha_means = alpha_regressions.mean(axis=1)
-    centered = alpha_regressions - alpha_means[:, np.newaxis]
-    alpha_deviations = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_seed - 1))
+    # alpha_means = alpha_regressions.mean(axis=1)
+    # centered = alpha_regressions - alpha_means[:, np.newaxis]
+    # alpha_deviations = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_seed - 1))
 
-    alpha_means_corrected = alpha_regressions_corrected.mean(axis=1)
-    centered = alpha_regressions_corrected - alpha_means_corrected[:, np.newaxis]
-    alpha_deviations_corrected = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_seed - 1))
+    # alpha_means_corrected = alpha_regressions_corrected.mean(axis=1)
+    # centered = alpha_regressions_corrected - alpha_means_corrected[:, np.newaxis]
+    # alpha_deviations_corrected = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_seed - 1))
 
-    # alpha_means, alpha_deviations = matrix_robust_mean(alpha_regressions)
-    # alpha_means_corrected, alpha_deviations_corrected = matrix_robust_mean(alpha_regressions_corrected)
+    alpha_means, alpha_deviations = matrix_robust_mean(alpha_regressions)
+    alpha_means_corrected, alpha_deviations_corrected = matrix_robust_mean(alpha_regressions_corrected)
 
     if all(alpha_means[k] is not None for k in range(len(alpha_tab))):
         alpha_reg_path = (output_dir / "alpha_regressions_from_n_params").with_suffix(".png")
         logger.info(f"Saving regression figure in {str(alpha_reg_path)}")
 
-        plt.figure()
-        plt.ylim(0., min(4., np.max(alpha_means_corrected + alpha_deviations_corrected)))
+        plt.figure(figsize=(9,5))
+        # plt.ylim(0., min(4., np.max(alpha_means_corrected + alpha_deviations_corrected)))
         alphas_gt = np.linspace(np.min(alpha_tab), np.max(alpha_tab))
         plt.fill_between(alpha_tab, \
                             alpha_means - alpha_deviations,\
                              alpha_means + alpha_deviations,
                              color = "b",
                              alpha = 0.25)
-        plt.plot(alphas_gt, alphas_gt, color = "r", label=r"Ground truth $\alpha$")
+        # plt.plot(alphas_gt, alphas_gt, color = "r", label=r"Ground truth $\alpha$")
         # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
         plt.plot(alpha_tab, alpha_means, color = "b",label=r"Estimated $\hat{\alpha}$")
-        plt.xlabel(r"Estimated tail index $\mathbf{\alpha}$", weight="bold")
-        plt.ylabel(r"Tail index $\mathbf{\hat{\alpha}}$", weight="bold")
+        plt.ylabel(r"Estimated tail index $\mathbf{\hat{\alpha}}$", weight="bold", fontsize=15)
+        plt.xlabel(r"Tail index $\mathbf{\alpha}$", weight="bold", fontsize=15)
         plt.grid()
         plt.legend()
 
-        plt.fill_between(alpha_tab, \
-                            alpha_means_corrected - alpha_deviations_corrected,\
-                             alpha_means_corrected + alpha_deviations_corrected,
-                             color = "gray",
-                             alpha = 0.25)
-        # plt.errorbar(alpha_tab, alpha_means, yerr=alpha_deviations, fmt="x")
-        plt.plot(alpha_tab, alpha_means_corrected, color = "k",label=r"Estimated $\hat{\alpha}$ with gradient correction")
-        # plt.xlabel(r"$\alpha$")
-        # plt.ylabel(r"$\hat{\alpha}$")
+        # Uncomment to plot the gradient corrected version
+        # plt.fill_between(alpha_tab, \
+        #                     alpha_means_corrected - alpha_deviations_corrected,\
+        #                      alpha_means_corrected + alpha_deviations_corrected,
+        #                      color = "gray",
+        #                      alpha = 0.25)
+        # plt.plot(alpha_tab, alpha_means_corrected, color = "k",label=r"Estimated $\hat{\alpha}$ with gradient correction")
         plt.legend()
 
         plt.savefig(str(alpha_reg_path))

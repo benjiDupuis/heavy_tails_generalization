@@ -3,6 +3,7 @@ from pathlib import Path
 
 import fire
 import matplotlib.pyplot as plt
+from matplotlib import rc, rcParams
 import matplotlib
 import numpy as np
 from loguru import logger
@@ -11,6 +12,8 @@ from tqdm import tqdm
 from last_point.utils import linear_regression, all_linear_regression
 from last_point.simulation import asymptotic_constant
 from last_point.utils import poly_alpha
+
+rcParams['font.weight'] = 'bold'
 
 
 def plot_alpha_dimension_regression(json_path: str):
@@ -78,7 +81,7 @@ def plot_alpha_dimension_regression(json_path: str):
 def plot_bound(gen_tab, bound_tab, output_dir: str,
                 sigma_values, alpha_values,
                     log_scale: bool = True, stem: str="",
-                    xlabel:str="Accuracy error (%)"):
+                    xlabel:str="Accuracy gap (%)"):
     
     output_dir = Path(output_dir)
 
@@ -119,7 +122,7 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     plt.savefig(str(output_path))
     plt.close()
 
-    plt.figure()
+    plt.figure(figsize=(9,5))
     if log_scale:
         plt.yscale("log")
         plt.xscale("log")
@@ -135,13 +138,13 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
                      c=alpha_values,
                      cmap=color_map)
     cbar = plt.colorbar(sc)
-    cbar.set_label(r"$\mathbf{\alpha}$", weight="bold")
+    cbar.set_label(r"Tail index $\mathbf{\alpha}$", weight="bold", fontsize=20)
     plt.grid()
-    plt.xlabel(xlabel, weight="bold")
-    plt.ylabel("Estimated bound", weight="bold")
+    plt.xlabel(xlabel, weight="bold", fontsize=20)
+    plt.ylabel("Estimated bound", weight="bold", fontsize=20)
     # plt.title("estimated bound versus generalization")
     logger.info(f"Saving a bound plot in {str(output_path)}")
-    plt.savefig(str(output_path))
+    plt.savefig(str(output_path), bbox_inches='tight')
     plt.close()
 
 
@@ -172,9 +175,9 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
         #     plt.scatter(alpha_tab, gen_grid[s, :])          
         # plt.title(f'Generalization error for sigma = {sigma_tab[s]}')
         plt.grid()
-        plt.xlabel(r"Tail index $\alpha$", weight="bold")
-        plt.ylabel("Accuracy gap (%)", weight="bold")
-        plt.legend()            
+        plt.xlabel(r"Tail index $\alpha$", weight="bold", fontsize=15)
+        plt.ylabel("Accuracy gap (%)", weight="bold",fontsize=15)
+        plt.legend(fontsize=15)            
 
         # Saving the figure
         fig_name = (f"sigma_{sigma_tab[s]}").replace(".","_")
@@ -327,7 +330,7 @@ def analyze_one_seed(json_path: str):
         alpha = results[k]["alpha"]
         n_params = results[k]["n_params"]
         sigma = results[k]["sigma"]  # true value, without normalization by the dim
-        sigma_factor = results[k]["sigma"] * np.sqrt(n_params)
+        sigma_factor = results[k]["n_params"] 
         gradient = results[k]["gradient_mean"]
         gradient_unormalized = results[k]["gradient_mean_unormalized"]
 
@@ -357,22 +360,6 @@ def analyze_one_seed(json_path: str):
                     results[k]["id_alpha"]
                 ] = results[k]["acc_generalization_deviation"]
 
-        # acc_gen_grid[
-        #     results[k]["id_sigma"],
-        #     results[k]["id_alpha"]
-        # ] = results[k]["acc_generalization"]
-
-        # gradient_grid[
-        #     results[k]["id_sigma"],
-        #     results[k]["id_alpha"]
-        # ] = results[k]["gradient_mean"]
-
-        # if deviations:
-        #     acc_gen_grid_deviation[
-        #             results[k]["id_sigma"],
-        #             results[k]["id_alpha"]
-        #         ] = results[k]["acc_generalization_deviation"]
-
 
         # Collect generalization error ad sigma and alpha, for colored plots
         gen_tab.append(results[k]["loss_generalization"])
@@ -389,11 +376,15 @@ def analyze_one_seed(json_path: str):
         # bs = results[k]["batch_size"]
 
         constant = asymptotic_constant(alpha, n_params)
-        normalization_tab[results[k]["id_alpha"]] = constant
+        logger.info(f"sigma: {sigma}")
+        R=1
 
         bound_tab.append(np.sqrt((constant * gradient * horizon * lr) / (n * np.power(sigma, alpha))))
         acc_bound_tab.append(100. * np.sqrt((constant * horizon * gradient * lr**(1.))/\
-                         (2. * n  * np.power(sigma, alpha))))
+                         (2. * n  * np.power(sigma, alpha) * np.power(R, 2. - alpha) )))
+        # acc_bound_tab.append(poly_alpha(alpha) * n_params / np.power(sigma * np.sqrt(n_params) * 0.2, alpha))
+        # acc_bound_tab.append(n_params )
+
 
     n_params_tab = list(n_params_dict.keys())
     
@@ -406,7 +397,7 @@ def analyze_one_seed(json_path: str):
     plot_bound(gen_tab, bound_tab, output_dir, sigma_factor_values,\
                  alpha_values, log_scale=False, xlabel="Loss error (cross entropy)")
     plot_bound(acc_tab, acc_bound_tab, output_dir, sigma_factor_values,\
-                alpha_values, log_scale=False, stem="accuracy")
+                alpha_values, log_scale=False, stem=f"accuracy_R_{R}")
 
 
     plot_one_seed(acc_gen_grid, n_params_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)

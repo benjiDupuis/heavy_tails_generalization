@@ -64,7 +64,39 @@ def linear_regression(x_tab: np.ndarray,
             return None
         
         return num / den
-    
+
+def regression_selection(x_tab: np.ndarray, 
+                          y_tab: np.ndarray, 
+                          threshold: float = 1.e-9) -> float:
+
+    degrees = np.linspace(0.01, 1., 100)
+    r_values = np.zeros(100)
+
+    for k in range(100):
+
+        deg = degrees[k]
+        x_tab_pow = np.power(x_tab, deg)
+        n = len(x_tab)
+
+        num = (x_tab_pow * y_tab).sum() - x_tab_pow.sum() * y_tab.sum() / n
+        den = (x_tab_pow * x_tab_pow).sum() - x_tab_pow.sum()**2 / n
+
+        if den < threshold:
+            logger.warning("Inifnite or undefined slope")
+            return None
+
+        slope = num / den
+
+        intercept = (y_tab - slope * x_tab_pow).mean()
+
+        r_values[k] = ((y_tab - (slope * x_tab_pow + intercept))**2).sum()
+        # logger.info(r_values[k])
+
+    return degrees[np.argmin(r_values)]
+
+        
+
+
 
 
 def robust_mean(tab: np.ndarray,
@@ -87,7 +119,7 @@ def robust_mean(tab: np.ndarray,
     return tab[indices].mean()
 
 
-def vector_robust_mean(tab: np.ndarray, quantile: float = 0.0):
+def vector_robust_mean(tab: np.ndarray, quantile: float = 0.1):
     """
     tab should be 1d, of len n_seed
     """ 

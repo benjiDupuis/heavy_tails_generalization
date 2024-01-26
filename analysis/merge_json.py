@@ -189,6 +189,7 @@ def merge_json(result_dir: str):
 
         json_list = [p for p in seed.rglob("*.json") if p.stem.startswith("result") \
                         and "seed" not in p.stem
+                         and "512" not in p.stem
                          ]
         n = 0 
         for p in json_list:
