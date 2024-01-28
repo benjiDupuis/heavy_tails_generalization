@@ -389,7 +389,7 @@ def run_and_save_one_simulation(result_dir: str,
 
     result_dir = Path(result_dir)
     if not result_dir.is_dir():
-        result_dir.mkdir()
+        result_dir.mkdir(exist_ok=True, parents=True)
 
     eta_name = str(eta).replace(".","_")
     rname = f"result_{id_sigma}_{id_alpha}_{width}_{eta_name}_{batch_size}"

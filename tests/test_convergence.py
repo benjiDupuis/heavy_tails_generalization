@@ -2,10 +2,10 @@ import json
 import tempfile
 from pathlib import Path
 
-from last_point.simulation import run_and_save_one_simulation
+from last_point.convergence_experiment import main as convergence_experiment
 
 KEYS = [
-    "horizon",
+        "horizon",
         "input_dimension",
         "n",
         "n_val",
@@ -30,48 +30,54 @@ KEYS = [
         "bias",
         "estimated_bound",
         "converged",
-        'final_train_accuracy',
-        "acc_gen_normalized",
-        "gradient_mean_unormalized",
-        "resize",
-        "scale_sigma",
-        "normalization",
-        "stopping",
-        "batch_size",
-        "id_eta"
-]
+        'final_train_accuracy']
 
 
 def test_simulation():
 
+    alpha = 1.8
+
     with tempfile.TemporaryDirectory() as output_dir:
 
-        run_and_save_one_simulation(
+        train_accs, val_accs, result_dir = convergence_experiment(
             output_dir,
+            3,
             3,
             n_ergodic=4,
             id_sigma=0,
             id_alpha=0,
-            id_eta=0,
             width=10,
             depth=1,
             subset=0.001,
             resize=10,
-            eta=0.01
+            eta=0.01,
+            alpha=alpha
         )
 
-        output_dir = Path(output_dir)
+        assert len(train_accs) == len(val_accs)
+        assert len(train_accs) == 4, (len(train_accs), 4)
 
-        eta_name = str(0.01).replace(".","_")
-        rname = f"result_{0}_{0}_{10}_{eta_name}_{-1}"
-        result_path = (output_dir / rname).with_suffix(".json")
+        result_dir = Path(result_dir)
+        assert result_dir.is_dir()
 
-        assert result_path.exists(), "No result file created"
-
-        with open(str(result_path), "r") as result_file:
+        json_path = result_dir / 'result_0_0.json'
+        assert json_path.exists()
+        with open(str(json_path), "r") as result_file:
             res = json.load(result_file)
             for key in KEYS:
                 assert key in res.keys()
+            sigma = res['sigma']
+            assert res['alpha'] == 1.8
+
+        fig_name = (f"loss_sigma_{sigma}_alpha_{alpha}").replace(".", "_")
+        output_path = (result_dir / fig_name).with_suffix(".png")
+        assert output_path.exists(), "No result file created"
+
+        fig_name = (f"accuracies_sigma_{sigma}_alpha_{alpha}").replace(".", "_")
+        output_path = (result_dir / fig_name).with_suffix(".png")
+        assert output_path.exists(), "No result file created"
+
+
 
 
 

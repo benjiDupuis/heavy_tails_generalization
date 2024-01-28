@@ -13,13 +13,6 @@ def main(args_):
 
     ''' generate experiment hash and set up redirect of output streams '''
     exp_hash = hash_dict(args_.__dict__)
-    # TODO: I removed logs saving, do we need it?
-    # if args_.result_dir is not None:
-    #     os.makedirs(args_.result_dir, exist_ok=True)
-    #     log_file_path = os.path.join(args_.result_dir, '%s.log ' % exp_hash)
-    #     logger = Logger(log_file_path)
-    #     sys.stdout = logger
-    #     sys.stderr = logger
 
     logger = logging.getLogger("root")
 
@@ -77,7 +70,6 @@ if __name__ == '__main__':
     parser.add_argument('--result_dir', type=str, default=None)
 
     # run related args
-    # It is: global parameters + (sigma, alpha)
     parser.add_argument('--horizon', type=int, default=10000)
     parser.add_argument('--d', type=int, default=10)
     parser.add_argument('--eta', type=float, default=0.001)
@@ -109,7 +101,6 @@ if __name__ == '__main__':
     parser.add_argument('--resize', type=int, default=28)
     parser.add_argument('--classes', nargs='+', required=False) # classes used in training
 
-    
 
     args = parser.parse_args()
     main(args)

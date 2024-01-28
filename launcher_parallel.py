@@ -11,20 +11,9 @@ import copy
 from pathlib import Path
 from loguru import logger
 
-# os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
-# os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
-
-
-# TODO: I am not sure if we need those in that case
 applicable_configs = {}
 default_configs = {}
 search_ranges = {}
-
-                       
-
-# TODO: is this useful?
-# check consistency of configuration dicts
-# assert set(itertools.chain(*list(applicable_configs.values()))) == {*default_configs.keys(), *search_ranges.keys()}
 
 
 def main(args_):
@@ -90,9 +79,8 @@ def main(args_):
                             'date', 'n_width', 'width_min', 'width_max', 
                             "n_lr", "n_bs", "lr_min", "lr_max", "bs_min", "bs_max"]]
                             
-                            ######## HACK #######
+                            #####################
                             # To avoid None arg error with the classes
-                            # TODO: maybe do it for each class
                             if args_.classes is None:
                                 flags.pop("classes")
                             #####################
@@ -143,12 +131,6 @@ def main(args_):
 
     logger.info(f"Launched a total of {exp_num} experiments")
 
-
-
-"""
-Test Commmand
-PYTHONPATH=$PWD python launcher_parallel.py --n_sigma 2 --n_width 1 --n_alpha 1 --n_lr 2 --n_bs 2  --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1 --width_max 100  --result_dir tests_directory --num_seeds_per_hparam 1 
-"""
 
 
 if __name__ == '__main__':
@@ -207,11 +189,6 @@ if __name__ == '__main__':
     parser.add_argument('--stopping', type=int, default=0) # whether or not use the stopping criterion
     parser.add_argument('--scale_sigma', type=int, default=1)
 
-    # parser.add_argument('--batch_size', type=int, default=256) 
-
-    # Additional option to vary the width
-    #parser.add_argument('--width_min', type=int, default=10)
-    #parser.add_argument('--width_max', type=int, default=100)
 
     # parameters used onlyfor mnist, or other image datasets
     parser.add_argument('--subset', type=float, default=1.)

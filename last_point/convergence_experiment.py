@@ -7,14 +7,10 @@ import fire
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn as nn
 from loguru import logger
-from scipy.special import gamma
-from typing import Tuple
 
 from data.dataset import get_full_batch_data
-from last_point.gaussian_mixture import sample_standard_gaussian_mixture
-from last_point.model import fcnn, fcnn_num_params
+from last_point.model import fcnn_num_params
 from last_point.simulation import asymptotic_constant, run_one_simulation
 
 CONVERGENCE_SEED = int(str(time.time()).split(".")[1])
@@ -211,8 +207,7 @@ def main(result_dir: str='tests_directory',
     plt.savefig(str(output_path))
     plt.close()
 
-    return train_accs, val_accs
-
+    return train_accs, val_accs, str(result_dir)
 
 
 alpha_list = [1.4, 1.6, 1.8, 2.]
@@ -250,7 +245,7 @@ def several_main(result_dir: str='tests_directory',
     acc_val_tabs = []
     
     for a in alpha_list:
-        acc_train, acc_val = main(result_dir=str(exp_path / f"alpha_{a}"),\
+        acc_train, acc_val, _ = main(result_dir=str(exp_path / f"alpha_{a}"),\
                                     horizon=horizon, 
                                     d=d,
                                     eta=eta,
