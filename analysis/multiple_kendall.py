@@ -13,6 +13,11 @@ from analysis.kendall import granulated_kendalls_from_dict
 from last_point.utils import matrix_robust_mean
 
 
+from matplotlib import rc, rcParams
+rcParams['font.weight'] = 'bold'
+
+
+
 def granulated_kendalls(json_path: str,
          generalization_key: str = "acc_generalization",
          complexity_keys: List[str] = ["alpha"],

@@ -12,6 +12,10 @@ from last_point.utils import linear_regression, all_linear_regression, regressio
 from last_point.simulation import asymptotic_constant
 from last_point.utils import poly_alpha, matrix_robust_mean
 
+from matplotlib import rc, rcParams
+rcParams['font.weight'] = 'bold'
+
+
 def dimension_regressions(json_path: str):
     """
     This scipts takes an all_results.json file and returns the regression
