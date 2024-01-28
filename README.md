@@ -1,6 +1,6 @@
 # Code for our experimental results
 
-We provide the code base that we used to produce our main experiments and figures. All our implementation has been done in python, tested with python `3.11.7``.
+We provide the code base that we used to produce our main experiments and figures. All our implementation has been done in python, tested with python `3.11.7`.
 
 ## Installation
 
