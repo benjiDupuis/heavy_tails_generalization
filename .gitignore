@@ -1,10 +1,13 @@
 **/*.env
 *.png
+**.png
 
 *.err.*
 *.out.*
 
 *.batch
+
+result_example/figures
 
 heavy_tails/
 heavytails

@@ -13,10 +13,9 @@ from last_point.utils import matrix_robust_mean
 
 
 #########################
-This scripts are the ones we used to create the plots of the Kenall tau correlation coefficient
-of the accuracy error with respect to alpha
-
-The file they take as input, called results.json, collect the results of several experiments
+# This scripts are the ones we used to create the plots of the Kenall tau correlation coefficient
+# of the accuracy error with respect to alpha
+# The file they take as input, called results.json, collect the results of several experiments
 #########################
       
 
@@ -116,7 +115,7 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
 
     plt.plot(varying_tab, np.zeros(len(varying_tab)), "--", color="r")
 
-    output_dir = json_path.parent / (json_path.parent.stem + "_figures")
+    output_dir = json_path.parent / "figures"
     if not output_dir.is_dir():
         output_dir.mkdir(parents=True, exist_ok=True)
 

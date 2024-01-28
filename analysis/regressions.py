@@ -3,16 +3,11 @@ from pathlib import Path
 
 import fire
 import matplotlib.pyplot as plt
-import matplotlib
 import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
-from last_point.utils import linear_regression, all_linear_regression
-from last_point.simulation import asymptotic_constant
-from last_point.utils import poly_alpha, matrix_robust_mean
-
-
+from last_point.utils import linear_regression
 
    
 def regressions_several_seeds_dim(json_path: str):
@@ -58,7 +53,6 @@ def regressions_several_seeds_dim(json_path: str):
             values[alpha_id]["alpha"] = seed_results[k]["alpha"]
             values[alpha_id]["n_params"].append(seed_results[k]["n_params"])
             values[alpha_id]["gen"].append(seed_results[k]["acc_generalization"])
-            values[alpha_id]["gen_corrected"].append(seed_results[k]["acc_generalization"] / np.sqrt(seed_results[k]["gradient_mean"]))
 
 
         for a in values.keys():
@@ -79,28 +73,15 @@ def regressions_several_seeds_dim(json_path: str):
                 logger.debug(f"No indices for alpha={alpha_tab[a]}")
                 alpha_regressions[a, seed_id] = None
 
-            if len(np.where(indices==1)[0]) > 1:
-                reg = linear_regression(np.log(params_tab[indices]),
-                                                    np.log(gen_corrected_tab[indices]))
-                alpha_regressions_corrected[a, seed_id] = 2. - 4. * reg      
-            else:
-                logger.debug(f"No indices for alpha={alpha_tab[a]}")
-                alpha_regressions[a, seed_id] = None
-
     alpha_means = alpha_regressions.mean(axis=1)
     centered = alpha_regressions - alpha_means[:, np.newaxis]
     alpha_deviations = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_seed - 1))
-
-    alpha_means_corrected = alpha_regressions_corrected.mean(axis=1)
-    centered = alpha_regressions_corrected - alpha_means_corrected[:, np.newaxis]
-    alpha_deviations_corrected = np.sqrt(np.power(centered, 2).sum(axis=1) / (n_seed - 1))
 
     if all(alpha_means[k] is not None for k in range(len(alpha_tab))):
         alpha_reg_path = (output_dir / "alpha_regressions_from_n_params").with_suffix(".png")
         logger.info(f"Saving regression figure in {str(alpha_reg_path)}")
 
         plt.figure()
-        plt.ylim(0., min(4., np.max(alpha_means_corrected + alpha_deviations_corrected)))
         alphas_gt = np.linspace(np.min(alpha_tab), np.max(alpha_tab))
         plt.fill_between(alpha_tab, \
                             alpha_means - alpha_deviations,\
@@ -112,13 +93,6 @@ def regressions_several_seeds_dim(json_path: str):
         plt.xlabel(r"$\mathbf{\alpha}$", weight="bold")
         plt.ylabel(r"$\mathbf{\hat{\alpha}}$", weight="bold")
         plt.legend()
-
-        plt.fill_between(alpha_tab, \
-                            alpha_means_corrected - alpha_deviations_corrected,\
-                             alpha_means_corrected + alpha_deviations_corrected,
-                             color = "gray",
-                             alpha = 0.25)
-        plt.plot(alpha_tab, alpha_means_corrected, color = "k",label=r"Estimated $\hat{\alpha}$ with gradient correction")
 
         plt.legend()
 

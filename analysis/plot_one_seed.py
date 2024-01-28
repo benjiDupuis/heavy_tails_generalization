@@ -3,14 +3,11 @@ from pathlib import Path
 
 import fire
 import matplotlib.pyplot as plt
-import matplotlib
 import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
-from last_point.utils import linear_regression
 from last_point.simulation import asymptotic_constant
-from last_point.utils import poly_alpha
 
 
 def plot_bound(gen_tab, bound_tab, output_dir: str,
@@ -28,28 +25,8 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     sigma_values = np.array(sigma_values)[ids]
     alpha_values = np.array(alpha_values)[ids]
 
-    a = max(min(gen_tab), min(bound_tab))
-    b = min(max(gen_tab), max(bound_tab))
-
     # Colormap
     color_map = plt.cm.get_cmap('viridis_r')
-    
-    plt.figure()
-    if log_scale:
-        plt.yscale("log")
-        plt.xscale("log")
-    output_path = (output_dir / ("estimated bound versus generalization_sigma_"  + stem )).with_suffix(".png")
-
-    sc = plt.scatter(gen_tab,
-                     bound_tab,
-                     c=np.log(sigma_values) / np.log(10.),
-                     cmap=color_map)
-    cbar = plt.colorbar(sc)
-    cbar.set_label("log(sigma)")
-
-    logger.info(f"Saving a bound plot in {str(output_path)}")
-    plt.savefig(str(output_path))
-    plt.close()
 
     plt.figure()
     if log_scale:
@@ -85,12 +62,17 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
 
         plt.figure()
         if deviation_grid is not None:
-            plt.errorbar(alpha_tab, gen_grid[s, :], yerr=deviation_grid[s, :])
+            plt.plot(alpha_tab, gen_grid[s, :], color="r")
+            plt.fill_between(alpha_tab, 
+                             gen_grid[s, :] - deviation_grid[s, :],
+                               gen_grid[s, :] + deviation_grid[s, :],
+                               color="r",
+                               alpha=0.25)
         else:
             plt.scatter(alpha_tab, gen_grid[s, :])          
 
         # Saving the figure
-        fig_name = (f"sigma_{sigma_tab[s]}").replace(".","_")
+        fig_name = (f"{sigma_tab[s]}").replace(".","_")
         output_path = (output_dir / fig_name).with_suffix(".png")
         plt.savefig(str(output_path))
         plt.close()
@@ -99,7 +81,12 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
 
             plt.figure()
             if deviation_grid is not None:
-                plt.errorbar(sigma_tab, gen_grid[:, a], yerr=deviation_grid[:, a])
+                plt.plot(alpha_tab, gen_grid[:, a], color="r")
+                plt.fill_between(alpha_tab, 
+                                gen_grid[:, a] - deviation_grid[:, a],
+                                gen_grid[:, a] + deviation_grid[:, a],
+                                color="r",
+                                alpha=0.25)
             else:
                 plt.scatter(sigma_tab, gen_grid[:, a])
             plt.xscale("log")        
@@ -110,22 +97,6 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
             plt.savefig(str(output_path))
             plt.close()
     
-    # Finally: the linear regressions
-    alpha_reg, correlation_reg = all_linear_regression(
-        gen_grid,
-        sigma_tab,
-        alpha_tab
-    )
-    if all(alpha_reg[k] is not None for k in range(len(alpha_tab))):
-        alpha_reg_path = (output_dir / "alpha_regression").with_suffix(".png")
-        plt.figure()
-        plt.plot(np.linspace(1,2, 100), np.linspace(1,2,100), color = "r")
-        plt.scatter(alpha_tab, alpha_reg)
-        plt.savefig(str(alpha_reg_path))
-        plt.close()
-    else:
-        logger.warning("Linear regression did not work, probably due to negative generalization values")
-
 
 def plot_gen_dim(json_path: str):
     """
@@ -176,7 +147,7 @@ def plot_gen_dim(json_path: str):
                 ] = results[k]["acc_generalization_deviation"]
 
     # Plot everything
-    output_dir = json_path.parent / (json_path.parent.stem + "_figures")
+    output_dir = json_path.parent / "figures"
     if not output_dir.is_dir():
         output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving figures in {str(output_dir)}")
@@ -228,7 +199,6 @@ def analyze_one_seed(json_path: str):
         sigma = results[k]["sigma"]  # true value, without normalization by the dim
         sigma_factor = results[k]["sigma"] * np.sqrt(n_params)
         gradient = results[k]["gradient_mean"]
-        gradient_unormalized = results[k]["gradient_mean_unormalized"]
 
         # TODO: this is ugly and suboptimal, find better
         sigma_tab[results[k]["id_sigma"]] = sigma
@@ -260,7 +230,6 @@ def analyze_one_seed(json_path: str):
         alpha_values.append(results[k]["alpha"])
 
         # in pytorch sgd, decay is the true decay, not post lr
-        decay = results[k]["decay"]
         horizon = results[k]["horizon"] + results[k]["n_ergodic"]
         lr = results[k]["eta"]
 
@@ -269,32 +238,32 @@ def analyze_one_seed(json_path: str):
         constant = asymptotic_constant(alpha, n_params)
         normalization_tab[results[k]["id_alpha"]] = constant
 
-        # The factor tzo appearing here comes from an optimized PAC-Bayesian generalization bound for bounded losses
-        acc_bound_tab.append(100. * np.sqrt((constant * horizon * lr * gradients)/\
-                         (2. * n  * np.power(sigma, alpha))))
+        # The value of R can be changed here
+        # In the example provided (the one in the main section of the paper),
+        # R is estimated to approximately 7
+        R = 7
+
+        # The factor two appearing here comes from an optimized PAC-Bayesian generalization bound for bounded losses
+        acc_bound_tab.append(100. * np.sqrt((constant * horizon * lr * gradient)/\
+                         (2. * n * np.power(R, 2. - alpha) * np.power(sigma, alpha))))
 
     # Plot everything
-    output_dir = json_path.parent / (json_path.parent.stem + "_figures")
+    output_dir = json_path.parent / "figures"
     if not output_dir.is_dir():
         output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving figures in {str(output_dir)}")
 
-    plot_one_seed(acc_gen_grid, sigma_factor_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)
+
+    # plot_one_seed(acc_gen_grid, sigma_factor_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)
     plot_bound(acc_tab, acc_bound_tab, output_dir, sigma_factor_values,\
                 alpha_values, log_scale=False, stem="accuracy")
 
 
-def main(json_path: str, mode: str="all_plots"):
+def main(json_path: str):
 
-    if mode == "all_plots":
-        analyze_one_seed(json_path)
-    elif mode == "dim_regression":
-        plot_alpha_dimension_regression(json_path)
-    elif mode == "d_plots":
-        plot_gen_dim(json_path)
-    else:
-        raise NotImplementedError()
- 
+    analyze_one_seed(json_path)
+    plot_gen_dim(json_path)
+
 
 if __name__ == "__main__":
      fire.Fire(main)
