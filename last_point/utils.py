@@ -4,31 +4,13 @@ from loguru import logger
 from scipy.special import gamma
 
 
-class LogisticLoss():
-
-    def __call__(y: torch.Tensor, \
-                  target: torch.Tensor) -> torch.Tensor:
-        return logistic_loss(y, target)
-
-def logistic_loss(y: torch.Tensor, \
-                  target: torch.Tensor) -> torch.Tensor:
-    
-    """
-    the target is supposed to come from the gaussian mixture, ie be either 0 or 1
-    """
-    assert y.shape == target.shape, (y.shape, target.shape)
-    assert y.ndim == 1, y.ndim
-
-    normalized_target = 2 * target - 1
-    temp = 1. + torch.exp((-1.) * normalized_target * y)
-
-    # We average over the batch
-    return torch.log(temp).mean()
-
 
 @torch.no_grad()
 def accuracy(y: torch.Tensor, \
               target: torch.Tensor) -> torch.Tensor:
+    '''
+    Computation of the accuracy error from the output of the network
+    '''
     
     assert y.shape[0] == target.shape[0], (y.shape[0], target.shape[0])
     assert target.ndim == 1, target.ndim
@@ -70,6 +52,9 @@ def linear_regression(x_tab: np.ndarray,
 def robust_mean(tab: np.ndarray,
                 quantile_up: float = 0.15,
                 quantile_low: float = 0.0) -> float:
+    ''''
+    Function used to compute a robust mean of the accuracy error over the last iterations
+    '''
      
     assert quantile_up >= 0. and quantile_up < 0.5, quantile_up
     assert quantile_low >= 0. and quantile_low < 0.5, quantile_low
@@ -87,7 +72,7 @@ def robust_mean(tab: np.ndarray,
 
 def matrix_robust_mean(tab: np.ndarray, quantile: float = 0.1):
     """
-    tab should be hyp, seed
+    Used to compute means and standard deviations on some experiments
     """
     n_hyp = tab.shape[0]
     means = np.zeros(n_hyp)
@@ -114,6 +99,9 @@ def matrix_robust_mean(tab: np.ndarray, quantile: float = 0.1):
 
 
 def poly_alpha(alpha): 
+    '''
+    Compute the factor P_alpha defined in the paper, in the high dimensional limit
+    '''
 
     if type(alpha) == float and alpha == 2.:
         # asymptotic development of gamma(1-s)
@@ -128,8 +116,6 @@ def poly_alpha(alpha):
     return num_alpha / den_alpha
 
 
-
-def all_linear_regression(
                         gen_grid: np.ndarray,
                         sigma_tab: np.ndarray,
                         alpha_tab: np.ndarray,

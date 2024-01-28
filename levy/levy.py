@@ -92,33 +92,6 @@ def plot_levy(n_iter: int = 1000,
     plt.savefig(str(output_path))
 
 
-def plot_levy_from_old_code(alpha: float = 1.8, 
-                            eta: float = 0.001, 
-                            output_dir: str = "levy_plots"):
-    
-
-    # Simulate it
-    levy_process = simulate_levy(2, alpha, eta) # shape (d,T)
-    n_iter = levy_process.shape[1]
-    assert levy_process.shape[0] == 2, levy_process.shape[0]
-
-    plt.figure()
-
-    for k in range(0, n_iter - 1):
-        plt.plot(levy_process[0,k:(k+2)],\
-                 levy_process[1,k:(k+2)],
-                   color="k")
-        
-    plt.title(f"Levy process simulation for alpha = {alpha}")
-
-    output_dir = Path(output_dir)
-    if not output_dir.is_dir():
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-    output_path = (output_dir / f"old_alpha_{alpha}_old_code".replace(".", "_")).with_suffix(".png")
-    logger.info(f"Saving figure in {str(output_path)}")
-    plt.savefig(str(output_path))
-
 def main(alpha: float = 1.8,
          eta: float = 0.001,
          output_dir: str = "levy_plots",
@@ -126,8 +99,6 @@ def main(alpha: float = 1.8,
     
     np.random.seed(seed)
     plot_levy(1000, alpha, eta, output_dir)
-    np.random.seed(seed)
-    plot_levy_from_old_code(alpha, eta, output_dir)
 
 if __name__ == "__main__":
     fire.Fire(main)

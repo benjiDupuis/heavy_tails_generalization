@@ -6,6 +6,11 @@ from loguru import logger
 import matplotlib.pyplot as plt
 
 
+####################
+This script is the one we used to plot the evolution of the test and train accuracies
+###################
+
+
 def plot_losses(result_dir: str):
 
     result_dir = Path(result_dir)
