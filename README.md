@@ -28,9 +28,11 @@ All data related scripts may be found in `data`. Models related scripts are in `
 The main simulation is implemented in `last_point/simulation.py`. It simulates the Euler Maruyama discretization of the equation studied in our paper. All the parameters are explained in the script itself. 
 
 $$
-\widehat{W_{k+1}^S} = \widehat{W_{k+1}^S} - \gamma \nabla V_S(\widehat{W_{k+1}^S}) + \sigma_1 \gamma^{\frac{1}{\alpha}} L_1^\alpha,
+\widehat{W_{k+1}^S} = \widehat{W_{k}^S} - \gamma \nabla V_S(\widehat{W_{k}^S}) + \sigma_1 \gamma^{\frac{1}{\alpha}} L_1^\alpha,
 $$
+
 with (see the paper for all the notations):
+
 $$
 V_S(w) = \widehat{F_S}(w) + \frac{\eta}{2} \Vert w \Vert^2.
 $$
