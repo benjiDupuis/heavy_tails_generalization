@@ -23,7 +23,6 @@ KEYS = [
         "acc_generalization",
         "id_sigma",
         "id_alpha",
-        "normalization_factor",
         "normalization",
         "gradient_mean",
         "K_constant",

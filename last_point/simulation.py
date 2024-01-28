@@ -167,10 +167,8 @@ def run_one_simulation(horizon: int,
         # Gradient step, put there to ensure initial acc are not corrupted
         opt.step()
 
-        # if compute_gradients and (k >= horizon or (converged and stopping)):
-        #     with torch.no_grad():
-                # gradient_norm_list.append(model.gradient_l2_squared_norm())
-        gradient_norm_list.append(model.gradient_l2_squared_norm())
+        with torch.no_grad():
+            gradient_norm_list.append(model.gradient_l2_squared_norm())
         
 
         # Adding the levy noise
@@ -194,25 +192,10 @@ def run_one_simulation(horizon: int,
           None, gradient_mean, converged, gradient_mean_unormalized
 
 
-def stable_normalization(alpha: float, d: float) -> float:
-
-        assert alpha >= 1., alpha
-        assert alpha <= 2., alpha
-
-        if alpha == 2.:
-            # asymptotic development of gamma(1-s)
-            # using EUler reflection formula
-            # TODO: recheck this
-            alpha_factor = 1.
-        else:
-            alpha_factor = np.power((2. - alpha) * gamma(1. - alpha/2.) / (alpha), 1./alpha)
-
-        dimension_factor = np.power(d, 0.5 - 1./alpha)
-        norm_factor = alpha_factor / (np.sqrt(2.) * dimension_factor)
-
-        return norm_factor
-
 def asymptotic_constant(alpha: float, d: float) -> float:
+    '''
+    compute the constqnt K_{\alpha, d} appearing in the bounds
+    '''
 
     if alpha == 2.:
         # asymptotic development of gamma(1-s)
@@ -322,7 +305,6 @@ def run_and_save_one_simulation(result_dir: str,
     ######################################
 
     # Normalization, if necessary
-    normalization_factor = stable_normalization(alpha, n_params)
     sigma_simu = sigma
 
     K_constant = asymptotic_constant(alpha, n_params)
@@ -387,7 +369,6 @@ def run_and_save_one_simulation(result_dir: str,
         "acc_generalization": accuracy_error,
         "id_sigma": id_sigma,
         "id_alpha": id_alpha,
-        "normalization_factor": normalization_factor,
         "normalization": int(normalization),
         "gradient_mean": gradient_mean,
         "K_constant": K_constant,
@@ -419,4 +400,7 @@ def run_and_save_one_simulation(result_dir: str,
     with open(str(result_path), "w") as result_file:
         json.dump(result_dict, result_file, indent = 2)
 
-    
+
+
+if __name__ == "__main__":
+    fire.Fire(run_and_save_one_simulation) 

@@ -115,30 +115,3 @@ def poly_alpha(alpha):
 
     return num_alpha / den_alpha
 
-
-                        gen_grid: np.ndarray,
-                        sigma_tab: np.ndarray,
-                        alpha_tab: np.ndarray,
-                        sigma_low: float = 0.) -> (np.ndarray, np.ndarray):
-        """
-        Returns the regression of the gen with respect to log(1/sigma), for each alpha
-        and the regression of the gen with respect to alpha, for each sigma
-        """
-        n_alpha = len(alpha_tab)
-        n_sigma = len(sigma_tab)
-
-        # Regression gen/log(1/sigma)
-        alpha_reg = np.zeros(n_alpha)
-        for a in range(n_alpha):
-            indices = (gen_grid[:, a] > 0.) * (sigma_tab > sigma_low)
-
-            corrected_gen = np.log(gen_grid[indices, a])
-            reg = linear_regression(np.log(1./sigma_tab[indices]), corrected_gen)
-            alpha_reg[a] = 2. * reg if reg is not None else None
-
-        # Regression gen/alpha
-        correlation_reg = np.zeros(n_sigma)
-        for s in range(n_sigma):
-            correlation_reg[s] = linear_regression(alpha_tab, gen_grid[s, :])
-
-        return alpha_reg, correlation_reg

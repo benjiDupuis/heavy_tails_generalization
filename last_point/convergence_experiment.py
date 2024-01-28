@@ -14,7 +14,6 @@ from typing import Tuple
 
 from data.dataset import get_full_batch_data
 from last_point.gaussian_mixture import sample_standard_gaussian_mixture
-from last_point.iris import sample_iris_dataset
 from last_point.model import fcnn, fcnn_num_params
 from last_point.simulation import asymptotic_constant, run_one_simulation
 
@@ -41,7 +40,7 @@ def main(result_dir: str='tests_directory',
           id_alpha: int = 0,
           compute_gradient: bool = False,
           bias: bool = False,
-          data_type: str = "gaussian",
+          data_type: str = "mnist",
           subset: float = 0.01,
           resize: int = 28,
           classes: list = None,
@@ -51,24 +50,11 @@ def main(result_dir: str='tests_directory',
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
 
-    # HACK to avoid parsing issue of the classes
     if classes is not None:
         classes = [int(c) for c in classes]
     
     # Generate the data
     # First the seed is set, so that each training will have the same data
-    if data_type == "gaussian":
-        np.random.seed(data_seed)
-        torch.manual_seed(data_seed)
-        n_per_class_train = n // n_classes
-        x_train, y_train, means = sample_standard_gaussian_mixture(d, n_per_class_train)
-        n_per_class_val = n_val // n_classes
-        x_val, y_val, _ = sample_standard_gaussian_mixture(d, n_per_class_val, 
-                                                            random_centers=False, 
-                                                            means_deterministic=means)
-
-        data = (x_train, y_train, x_val, y_val)
-        print(data)
 
     elif data_type == "cifar10":
         np.random.seed(data_seed)
@@ -97,13 +83,6 @@ def main(result_dir: str='tests_directory',
         d = resize**2
         n_classes = 10
 
-    elif data_type == "iris":
-        np.random.seed(data_seed)
-        torch.manual_seed(data_seed)
-        data, info_on_iris = sample_iris_dataset()
-
-        n_classes = 3
-        d = info_on_iris[1]
 
     # TODO remove this hack
     initialization = None 
