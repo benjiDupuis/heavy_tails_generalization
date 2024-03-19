@@ -13,7 +13,11 @@ from last_point.simulation import asymptotic_constant
 from last_point.utils import poly_alpha, matrix_robust_mean
 
 from matplotlib import rc, rcParams
-rcParams['font.weight'] = 'bold'
+# rcParams['font.weight'] = 'bold'
+
+font = {'weight' : 'bold',
+        'size'   : 15}
+matplotlib.rc('font', **font)
 
 
 def dimension_regressions(json_path: str):

@@ -13,7 +13,12 @@ from last_point.utils import linear_regression, all_linear_regression
 from last_point.simulation import asymptotic_constant
 from last_point.utils import poly_alpha
 
-rcParams['font.weight'] = 'bold'
+# rcParams['font.weight'] = 'bold'
+
+font = {'weight' : 'bold',
+        'size'   : 15}
+matplotlib.rc('font', **font)
+
 
 
 def plot_alpha_dimension_regression(json_path: str):
@@ -277,7 +282,7 @@ def plot_gen_dim(json_path: str):
 
 
 
-def analyze_one_seed(json_path: str):
+def analyze_one_seed(json_path: str, R: float=1.):
 
     json_path = Path(json_path)
     assert json_path.exists(), str(json_path)
@@ -376,8 +381,6 @@ def analyze_one_seed(json_path: str):
         # bs = results[k]["batch_size"]
 
         constant = asymptotic_constant(alpha, n_params)
-        logger.info(f"sigma: {sigma}")
-        R=1
 
         bound_tab.append(np.sqrt((constant * gradient * horizon * lr) / (n * np.power(sigma, alpha))))
         acc_bound_tab.append(100. * np.sqrt((constant * horizon * gradient * lr**(1.))/\
@@ -406,8 +409,11 @@ def analyze_one_seed(json_path: str):
 
 def main(json_path: str, mode: str="all_plots"):
 
+    R_list = [1., 3., 7., 15.]
+
     if mode == "all_plots":
-        analyze_one_seed(json_path)
+        for R in R_list:
+            analyze_one_seed(json_path, R=R)
     elif mode == "dim_regression":
         plot_alpha_dimension_regression(json_path)
     elif mode == "d_plots":
