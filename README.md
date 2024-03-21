@@ -56,14 +56,14 @@ The folder `analysis` contains code to produce figures similar as the ones that 
 
 To compute the estimated bound and plots the averaged accuracy with respect to $\alpha$, you can run:
 ```
-python analysis/plot_ome_seed.py result_example/average_results.json .
+python analysis/plot_one_seed.py result_example/average_results.json
 ```
 To compute the correlation (Kendall's $\tau$) between the accuracy gap and $\alpha$, run:
 ```
-python analysis/multiple_kendalls.py result_example/all_results.json .
+python analysis/multiple_kendall.py result_example/all_results.json
 ```
 You can also use the argument `--av_path` to obtain the black curve shown in the paper.
 To compute the regression of $\alpha$ from the accuracy gap, run:
 ```
-python analysis/regressions.py result_example/average_results.json .
+python analysis/regressions.py result_example/average_results.json
 ```

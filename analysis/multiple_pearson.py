@@ -6,7 +6,7 @@ import fire
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
-from scipy.stats import kendalltau
+from scipy.stats import pearsonr
 from tqdm import tqdm
 
 from last_point.utils import matrix_robust_mean
@@ -19,13 +19,13 @@ from last_point.utils import matrix_robust_mean
 #########################
       
 
-def alpha_kendall(results: dict, key: str = "n_params"):
+def alpha_pearson(results: dict, key: str = "n_params"):
     """
     dict is one seed, e.g. average_results for instance
     """
 
     # We first collect, for each sigma, the alpha_tab and the gen_tab
-    # and use them to compute the kendall coefficient
+    # and use them to compute the pearson coefficient
 
     if key == "sigma":
         varying = "sigma"
@@ -38,7 +38,7 @@ def alpha_kendall(results: dict, key: str = "n_params"):
 
 
     varying_tab = []
-    kendall_tab = []
+    pearson_tab = []
     fixed_results = {}
 
     for key in tqdm(results.keys()):
@@ -60,16 +60,16 @@ def alpha_kendall(results: dict, key: str = "n_params"):
     for v in tqdm(fixed_results.keys()):
 
         varying_tab.append(fixed_results[v][varying])
-        kendall_tab.append(kendalltau(
+        pearson_tab.append(pearsonr(
             fixed_results[v]["alpha"],
             fixed_results[v]["gen"]
         ).correlation)
 
 
-    return np.array(varying_tab), np.array(kendall_tab)
+    return np.array(varying_tab), np.array(pearson_tab)
 
 
-def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str = None):
+def alpha_pearson_all_seeds(json_path: str, key: str = "n_params", av_path: str = None):
     """
     json_path should be all_results.json
     """
@@ -80,13 +80,13 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
     with open(str(json_path), "r") as json_file:
         results = json.load(json_file)
 
-    kendalls = []
+    pearsons = []
 
     for seed in tqdm(results.keys()):
-        varying_tab, kendall_tab = alpha_kendall(results[seed], key=key)
-        kendalls.append(kendall_tab[:, np.newaxis])
+        varying_tab, pearson_tab = alpha_pearson(results[seed], key=key)
+        pearsons.append(pearson_tab[:, np.newaxis])
     
-    psi = np.concatenate(kendalls, axis=1)
+    psi = np.concatenate(pearsons, axis=1)
     assert psi.shape[0] == len(varying_tab)
     assert psi.shape[1] == len(results.keys())
 
@@ -111,7 +111,7 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
     plt.xlabel(xlabel, weight="bold")
     if key == "sigma":
         plt.xscale("log")
-    plt.ylabel(r"Kendall $\mathbf{\tau}$", weight="bold")
+    plt.ylabel(r"pearson $\mathbf{\tau}$", weight="bold")
 
     plt.plot(varying_tab, np.zeros(len(varying_tab)), "--", color="r")
 
@@ -119,7 +119,7 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
     if not output_dir.is_dir():
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    fig_name = "alpha_correlation_with_errors"
+    fig_name = "alpha_correlation_with_errors_pearson"
     output_path = (output_dir / fig_name).with_suffix(".png")
 
     logger.info(f"Saving figures in {str(output_path)}")
@@ -132,14 +132,14 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
         with open(str(av_path), "r") as json_file:
             results = json.load(json_file)
 
-        varying_tab, kendall_tab = alpha_kendall(results, key=key)
+        varying_tab, pearson_tab = alpha_pearson(results, key=key)
 
         # we order varying_tab
         indices = np.argsort(varying_tab)
         varying_tab = varying_tab[indices]
-        kendall_tab = kendall_tab[indices]
+        pearson_tab = pearson_tab[indices]
 
-        plt.plot(varying_tab, kendall_tab, "--", color="k",\
+        plt.plot(varying_tab, pearson_tab, "--", color="k",\
                     label=r"$\mathbf{\tau}$ of the mean generalization error wrt $\alpha$")
 
     plt.legend()
@@ -150,7 +150,7 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
     return varying_tab, psi_means, psi_deviations
 
     
-def plot_alpha_kendall(json_path: str, key: str="n_params"):
+def plot_alpha_pearson(json_path: str, key: str="n_params"):
     """
     dict is one seedor average_results
     """
@@ -161,15 +161,15 @@ def plot_alpha_kendall(json_path: str, key: str="n_params"):
     with open(str(json_path), "r") as json_file:
         results = json.load(json_file)
 
-    varying_tab, kendall_tab = alpha_kendall(results, key=key)
+    varying_tab, pearson_tab = alpha_pearson(results, key=key)
 
     plt.figure()
-    plt.scatter(varying_tab, kendall_tab)
+    plt.scatter(varying_tab, pearson_tab)
     xlabel = "d" if key == "n_params" else "sigma"
     plt.xlabel(xlabel)
     if key == "sigma":
         plt.xscale("log")
-    plt.ylabel(r"Kendall tau $\psi$")
+    plt.ylabel(r"pearson tau $\psi$")
     
     output_dir = json_path.parent / (json_path.parent.stem + "_figures")
     if not output_dir.is_dir():
@@ -186,7 +186,7 @@ def plot_alpha_kendall(json_path: str, key: str="n_params"):
 
 
 if __name__ == "__main__":
-    fire.Fire(alpha_kendall_all_seeds)
+    fire.Fire(alpha_pearson_all_seeds)
 
 
 
