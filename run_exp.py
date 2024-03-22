@@ -6,6 +6,7 @@ import logging
 import os
 
 from last_point.simulation import run_and_save_one_simulation
+from last_point.batch_simulation import run_and_save_one_simulation as run_and_save_one_simulation_batch
 
 
 def main(args_):
@@ -25,7 +26,15 @@ def main(args_):
     """"""""""""""""""""""""""""""""""" Hyperparameter selection """""""""""""""""""""""""""""""""""""""""""""""
 
 
-    run_and_save_one_simulation(args_.result_dir,
+    if args_.script == "batch":
+        executed_function = run_and_save_one_simulation_batch
+    elif args_.script == "full_batch":
+        executed_function = run_and_save_one_simulation
+    else:
+        raise NotImplementedError()
+
+    
+    executed_function(args_.result_dir,
                                 args_.horizon,
                                 args_.d,
                                 args_.eta,
@@ -96,6 +105,9 @@ if __name__ == '__main__':
 
     # New arg: batch size
     parser.add_argument('--batch_size', type=int, default=-1)
+
+    # Which code to use
+    parser.add_argument("--script", type=str, default="batch")
 
     parser.add_argument('--subset', type=float, default=0.01)
     parser.add_argument('--resize', type=int, default=28)

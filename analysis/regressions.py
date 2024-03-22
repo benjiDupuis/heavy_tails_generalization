@@ -68,6 +68,8 @@ def regressions_several_seeds_dim(json_path: str):
             if len(np.where(indices==1)[0]) > 1:
                 reg = linear_regression(np.log(params_tab[indices]),
                                                     np.log(gen_tab[indices]))
+                # reg = regression_selection(params_tab[indices], gen_tab[indices])
+                # logger.info(reg)
                 alpha_regressions[a, seed_id] = 2. - 4. * reg      
             else:
                 logger.debug(f"No indices for alpha={alpha_tab[a]}")
@@ -90,8 +92,9 @@ def regressions_several_seeds_dim(json_path: str):
                              alpha = 0.25)
         plt.plot(alphas_gt, alphas_gt, color = "r", label=r"Ground truth $\alpha$")
         plt.plot(alpha_tab, alpha_means, color = "b",label=r"Estimated $\hat{\alpha}$")
-        plt.xlabel(r"$\mathbf{\alpha}$", weight="bold")
-        plt.ylabel(r"$\mathbf{\hat{\alpha}}$", weight="bold")
+        plt.ylabel(r"Estimated tail index $\mathbf{\hat{\alpha}}$", weight="bold", fontsize=15)
+        plt.xlabel(r"Tail index $\mathbf{\alpha}$", weight="bold", fontsize=15)
+        plt.grid()
         plt.legend()
 
         plt.legend()

@@ -19,7 +19,7 @@ from last_point.utils import matrix_robust_mean
 #########################
       
 
-def alpha_kendall(results: dict, key: str = "n_params"):
+def alpha_kendall(results: dict, key: str = "n_params", gen_key="acc_generalization"):
     """
     dict is one seed, e.g. average_results for instance
     """
@@ -53,7 +53,7 @@ def alpha_kendall(results: dict, key: str = "n_params"):
             results[key]["alpha"]
         )
         fixed_results[results[key][varying_id]]["gen"].append(
-            results[key]["acc_generalization"]
+            results[key][gen_key]
         )
         fixed_results[results[key][varying_id]][varying] = results[key][varying]
 
@@ -107,11 +107,11 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
                     color = "g",
                     alpha = 0.25)
     plt.plot(varying_tab, psi_means, color = "g",label=r"$\mathbf{\tau}$")
-    xlabel = "d" if key == "n_params" else r"$\sigma$"
-    plt.xlabel(xlabel, weight="bold")
+    xlabel = r"Number of parameters $\mathbf{d}$" if key == "n_params" else r"$\mathbf{\sigma_1}$"
+    plt.xlabel(xlabel, weight="bold", fontsize=15)
     if key == "sigma":
         plt.xscale("log")
-    plt.ylabel(r"Kendall $\mathbf{\tau}$", weight="bold")
+    plt.ylabel(r"Kendall $\mathbf{\tau}$ accuracy gap vs. $\mathbf{\alpha}$", weight="bold", fontsize=15)
 
     plt.plot(varying_tab, np.zeros(len(varying_tab)), "--", color="r")
 
@@ -119,7 +119,7 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
     if not output_dir.is_dir():
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    fig_name = "alpha_correlation_with_errors"
+    fig_name = "alpha_correlation_with_errors_no_mean"
     output_path = (output_dir / fig_name).with_suffix(".png")
 
     logger.info(f"Saving figures in {str(output_path)}")
@@ -132,7 +132,8 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
         with open(str(av_path), "r") as json_file:
             results = json.load(json_file)
 
-        varying_tab, kendall_tab = alpha_kendall(results, key=key)
+        varying_tab, kendall_tab = alpha_kendall(results,\
+                                                 key=key)
 
         # we order varying_tab
         indices = np.argsort(varying_tab)

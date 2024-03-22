@@ -13,7 +13,7 @@ from last_point.simulation import asymptotic_constant
 def plot_bound(gen_tab, bound_tab, output_dir: str,
                 sigma_values, alpha_values,
                     log_scale: bool = True, stem: str="",
-                    xlabel:str="Accuracy error (%)"):
+                    xlabel:str="Accuracy gap (%)"):
     
     output_dir = Path(output_dir)
 
@@ -28,7 +28,7 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     # Colormap
     color_map = plt.cm.get_cmap('viridis_r')
 
-    plt.figure()
+    plt.figure(figsize=(9,5))
     if log_scale:
         plt.yscale("log")
         plt.xscale("log")
@@ -43,7 +43,7 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
     cbar.set_label(r"$\mathbf{\alpha}$")
     plt.xlabel(xlabel, weight="bold")
     logger.info(f"Saving a bound plot in {str(output_path)}")
-    plt.savefig(str(output_path))
+    plt.savefig(str(output_path), bbox_inches='tight')
     plt.close()
 
 
@@ -58,6 +58,7 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
 
     logger.info(f"Saving all figures in {output_dir}")
 
+    # Actually, in our case, sigma is n_params, but it works the same
     for s in tqdm(range(n_sigma)):
 
         plt.figure()
@@ -156,7 +157,7 @@ def plot_gen_dim(json_path: str):
 
 
 
-def analyze_one_seed(json_path: str):
+def analyze_one_seed(json_path: str, R: float=1.):
 
     json_path = Path(json_path)
     assert json_path.exists(), str(json_path)
@@ -170,6 +171,13 @@ def analyze_one_seed(json_path: str):
     example_key = list(results.keys())[0]
     deviations: bool = ("acc_generalization_deviation" in list(results[example_key].keys()))
 
+    # determine n_width
+    d_list = []
+    for k in results.keys():
+        if results[k]["n_params"] not in d_list:
+            d_list.append(results[k]["n_params"])
+    n_width = len(d_list)
+    
     # Collect n_alpha and n_sigma
     n_sigma = 1 + max(results[k]["id_sigma"] for k in results.keys())
     n_alpha = 1 + max(results[k]["id_alpha"] for k in results.keys())
@@ -179,9 +187,12 @@ def analyze_one_seed(json_path: str):
     sigma_factor_tab = np.zeros(n_sigma)
     alpha_tab = np.zeros(n_alpha)
     normalization_tab = np.zeros(n_alpha)
-    acc_gen_grid = np.zeros((n_sigma, n_alpha))
-    gradient_grid = np.zeros((n_sigma, n_alpha))
-    acc_gen_grid_deviation = np.zeros((n_sigma, n_alpha)) if deviations else None 
+    acc_gen_grid = np.zeros((n_width, n_alpha))
+    gradient_grid = np.zeros((n_width, n_alpha))
+    acc_gen_grid_deviation = np.zeros((n_width, n_alpha)) if deviations else None 
+
+    n_params_dict = {} # dict n_params: an index used for plotting
+    n_params_idx = 0
 
     gen_tab = []
     acc_bound_tab = []
@@ -200,24 +211,29 @@ def analyze_one_seed(json_path: str):
         sigma_factor = results[k]["sigma"] * np.sqrt(n_params)
         gradient = results[k]["gradient_mean"]
 
+        if n_params not in n_params_dict.keys():
+            n_params_dict[n_params] = n_params_idx
+            n_params_idx += 1
+
+
         # TODO: this is ugly and suboptimal, find better
         sigma_tab[results[k]["id_sigma"]] = sigma
         sigma_factor_tab[results[k]["id_sigma"]] = sigma_factor
         alpha_tab[results[k]["id_alpha"]] = results[k]["alpha"]
 
         acc_gen_grid[
-            results[k]["id_sigma"],
+            n_params_dict[n_params],
             results[k]["id_alpha"]
         ] = results[k]["acc_generalization"]
 
         gradient_grid[
-            results[k]["id_sigma"],
+            n_params_dict[n_params],
             results[k]["id_alpha"]
         ] = results[k]["gradient_mean"]
 
         if deviations:
             acc_gen_grid_deviation[
-                    results[k]["id_sigma"],
+                    n_params_dict[n_params],
                     results[k]["id_alpha"]
                 ] = results[k]["acc_generalization_deviation"]
 
@@ -236,7 +252,6 @@ def analyze_one_seed(json_path: str):
         # bs = results[k]["batch_size"]
 
         constant = asymptotic_constant(alpha, n_params)
-        normalization_tab[results[k]["id_alpha"]] = constant
 
         # The value of R can be changed here
         # In the example provided (the one in the main section of the paper),
@@ -247,6 +262,9 @@ def analyze_one_seed(json_path: str):
         acc_bound_tab.append(100. * np.sqrt((constant * horizon * lr * gradient)/\
                          (2. * n * np.power(R, 2. - alpha) * np.power(sigma, alpha))))
 
+
+    n_params_tab = list(n_params_dict.keys())
+    
     # Plot everything
     output_dir = json_path.parent / "figures"
     if not output_dir.is_dir():
@@ -256,7 +274,7 @@ def analyze_one_seed(json_path: str):
 
     # plot_one_seed(acc_gen_grid, sigma_factor_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)
     plot_bound(acc_tab, acc_bound_tab, output_dir, sigma_factor_values,\
-                alpha_values, log_scale=False, stem="accuracy")
+                alpha_values, log_scale=False, stem=f"accuracy_R_{R}")
 
 
 def main(json_path: str):

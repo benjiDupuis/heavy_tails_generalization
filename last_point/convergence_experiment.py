@@ -9,9 +9,11 @@ import numpy as np
 import torch
 from loguru import logger
 
-from data.dataset import get_full_batch_data
-from last_point.model import fcnn_num_params
-from last_point.simulation import asymptotic_constant, run_one_simulation
+from data.dataset import get_full_batch_data, get_data_simple
+from last_point.gaussian_mixture import sample_standard_gaussian_mixture
+from last_point.iris import sample_iris_dataset
+from last_point.model import fcnn, fcnn_num_params
+from last_point.batch_simulation import asymptotic_constant, run_one_simulation
 
 CONVERGENCE_SEED = int(str(time.time()).split(".")[1])
 
@@ -20,15 +22,15 @@ def main(result_dir: str='tests_directory',
           horizon: int=0, 
           d: int=10,
           eta: float=0.01,
-          sigma: float=1.,
+          sigma: float=10.,
           alpha: float=2.,
           n: int = 1000,
           n_val: int = 1000,
           n_ergodic: int = 10000,
           n_classes: int = 2,
           decay: float = 0.001,
-          depth: int = 1,
-          width: int = 50,
+          depth: int = 4,
+          width: int = 100,
           data_seed: int = CONVERGENCE_SEED,
           model_seed: int = CONVERGENCE_SEED + 1,
           normalization: bool = False,
@@ -41,7 +43,7 @@ def main(result_dir: str='tests_directory',
           resize: int = 28,
           classes: list = None,
           stopping: bool = False,
-          batch_size: int = -1):
+          batch_size: int = 32):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
@@ -64,16 +66,16 @@ def main(result_dir: str='tests_directory',
     elif data_type == "mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
-        data = get_full_batch_data("mnist", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
+        data = get_data_simple("mnist", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2
-        n_classes = 10
+        n_classes = 10 if classes is None else len(classes)
 
     elif data_type == "fashion-mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
-        data = get_full_batch_data("fashion-mnist", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
+        data = get_data_simple("fashion-mnist", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2
@@ -94,7 +96,7 @@ def main(result_dir: str='tests_directory',
     K_constant = asymptotic_constant(alpha, n_params)
 
     generalization, loss_tab, accuracy_tab,\
-          _, gradient_mean, converged, _ = run_one_simulation(horizon, 
+          _, gradient_mean, converged, _, batch_acc_tab = run_one_simulation(horizon, 
                                     d,
                                     eta,
                                     sigma,
@@ -125,7 +127,7 @@ def main(result_dir: str='tests_directory',
     accuracy_error_tab_np = np.array([
         accuracy_error_tab[k][0] - accuracy_error_tab[k][1] for k in range(n_ergodic)
     ])
-    accuracy_error = float(100. * accuracy_error_tab_np.mean())
+    accuracy_error = float(accuracy_error_tab_np.mean())
 
     if compute_gradient:
       bound = np.sqrt(K_constant * gradient_mean / (n * decay * np.power(sigma, alpha)))
@@ -133,8 +135,8 @@ def main(result_dir: str='tests_directory',
       bound = None
 
     # Correct value of n
-    n = data[0].shape[0]
-    n_val = data[2].shape[0]
+    n = len(data[0])
+    n_val = len(data[2])
 
     result_dict = {
         "horizon": horizon, 
@@ -163,8 +165,9 @@ def main(result_dir: str='tests_directory',
         "bias": bias,
         "estimated_bound": bound,
         "converged": converged,
-        'final_train_accuracy': accuracy_tab[-1][0].item(),
-        'class_list': classes
+        'final_train_accuracy': accuracy_tab[-1][0],
+        'class_list': classes,
+        "batch_size": batch_size
     }
 
     result_dir = Path(result_dir) / str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0]
@@ -207,24 +210,25 @@ def main(result_dir: str='tests_directory',
     plt.savefig(str(output_path))
     plt.close()
 
-    return train_accs, val_accs, str(result_dir)
+    return train_accs, val_accs, batch_acc_tab
+
 
 
 alpha_list = [1.4, 1.6, 1.8, 2.]
 
 def several_main(result_dir: str='tests_directory',
-          horizon: int=20000, 
+          horizon: int=20001, 
           d: int=10,
-          eta: float=0.1,
-          sigma: float=0.1,
-          alpha_list: list=[1.4, 1.6, 1.8, 2.],
+          eta: float=0.01,
+          sigma: float=10.,
+          alpha_list: list=[1.8],
           n: int = 100,
           n_val: int = 1000,
-          n_ergodic: int = 1000,
+          n_ergodic: int = 1,
           n_classes: int = 2,
           decay: float = 0.001,
           depth: int = 4,
-          width: int = 50,
+          width: int = 100,
           data_seed: int = CONVERGENCE_SEED,
           model_seed: int = CONVERGENCE_SEED + 1,
           normalization: bool = False,
@@ -237,15 +241,16 @@ def several_main(result_dir: str='tests_directory',
           resize: int = 28,
           classes: list = None,
           stopping: bool = False,
-          batch_size: int = 64):
+          batch_size: int = 128):
 
     exp_path = Path(result_dir) / str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0]
 
     acc_train_tabs = []
     acc_val_tabs = []
+    acc_val_tabs = []
     
     for a in alpha_list:
-        acc_train, acc_val, _ = main(result_dir=str(exp_path / f"alpha_{a}"),\
+        acc_train, acc_val, batch_acc_tab = main(result_dir=str(exp_path / f"alpha_{a}"),\
                                     horizon=horizon, 
                                     d=d,
                                     eta=eta,
@@ -272,6 +277,11 @@ def several_main(result_dir: str='tests_directory',
                                     stopping = stopping,
                                     batch_size=batch_size)
         
+        plt.figure()
+        plt.plot(np.arange(len(batch_acc_tab)), batch_acc_tab)
+        plt.savefig(str(exp_path / f"acc_alpha_{a}.png"))
+        plt.close()
+        
         acc_train_tabs.append(acc_train)
         acc_val_tabs.append(acc_val)
 
@@ -286,25 +296,25 @@ def several_main(result_dir: str='tests_directory',
     plt.title(r"$\alpha=$" + f"{alpha_list[0]}")
     plt.legend()
 
-    plt.subplot(142)
-    plt.plot(np.arange(iterations), acc_train_tabs[1], label="Train accuracy")
-    plt.plot(np.arange(iterations), acc_val_tabs[1], label="Test accuracy")
-    plt.legend()
-    plt.title(r"$\alpha=$" + f"{alpha_list[1]}")
-    plt.legend()
+    # plt.subplot(142)
+    # plt.plot(np.arange(iterations), acc_train_tabs[1], label="Train accuracy")
+    # plt.plot(np.arange(iterations), acc_val_tabs[1], label="Test accuracy")
+    # plt.legend()
+    # plt.title(r"$\alpha=$" + f"{alpha_list[1]}")
+    # plt.legend()
 
-    plt.subplot(143)
-    plt.plot(np.arange(iterations), acc_train_tabs[2], label="Train accuracy")
-    plt.plot(np.arange(iterations), acc_val_tabs[2], label="Test accuracy")
-    plt.legend()
-    plt.title(r"$\alpha=$" + f"{alpha_list[2]}")
-    plt.legend()
+    # plt.subplot(143)
+    # plt.plot(np.arange(iterations), acc_train_tabs[2], label="Train accuracy")
+    # plt.plot(np.arange(iterations), acc_val_tabs[2], label="Test accuracy")
+    # plt.legend()
+    # plt.title(r"$\alpha=$" + f"{alpha_list[2]}")
+    # plt.legend()
 
-    plt.subplot(144)
-    plt.plot(np.arange(iterations), acc_train_tabs[3], label="Train accuracy")
-    plt.plot(np.arange(iterations), acc_val_tabs[3], label="Test accuracy")
-    plt.legend()
-    plt.title(r"$\alpha=$" + f"{alpha_list[3]}")
+    # plt.subplot(144)
+    # plt.plot(np.arange(iterations), acc_train_tabs[3], label="Train accuracy")
+    # plt.plot(np.arange(iterations), acc_val_tabs[3], label="Test accuracy")
+    # plt.legend()
+    # plt.title(r"$\alpha=$" + f"{alpha_list[3]}")
 
     fig_name = "accuracies"
     output_path = (exp_path / fig_name).with_suffix(".png")
