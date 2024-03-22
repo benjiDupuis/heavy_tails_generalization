@@ -67,3 +67,8 @@ To compute the regression of $\alpha$ from the accuracy gap, run:
 ```
 python analysis/regressions.py result_example/average_results.json
 ```
+
+
+### Batch simulation tracking (final_results)
+
+Experiment 1: 2024-03-22_16_15_03

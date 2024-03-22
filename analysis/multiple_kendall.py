@@ -187,7 +187,8 @@ def plot_alpha_kendall(json_path: str, key: str="n_params"):
 
 
 if __name__ == "__main__":
-    fire.Fire(alpha_kendall_all_seeds)
+    # fire.Fire(alpha_kendall_all_seeds)
+    fire.Fire(plot_alpha_kendall)
 
 
 

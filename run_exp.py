@@ -100,7 +100,8 @@ if __name__ == '__main__':
     parser.add_argument("--id_eta", type=int, default=0)
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=1)
-    parser.add_argument('--data_type', type=str, default="mnist")
+    parser.add_argument('--data_type', type=str, default="cifar10")
+    parser.add_argument('--model', type=str, default="cnn")
     parser.add_argument('--stopping', type=int, default=0)
     parser.add_argument('--scale_sigma', type=int, default=1)
 

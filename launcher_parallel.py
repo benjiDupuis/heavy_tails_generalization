@@ -134,6 +134,7 @@ def main(args_):
 """
 Test Commmand
 PYTHONPATH=$PWD python launcher_parallel.py --num_gpus 0 --n_sigma 2 --n_width 1 --n_alpha 1 --n_lr 2 --n_bs 2  --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1 --width_max 100  --result_dir tests_directory --num_seeds_per_hparam 1 
+PYTHONPATH=$PWD python launcher_parallel.py --num_gpus 0 --n_width 2 --n_alpha 1 --subset 0.001 --classes 1 2 --result_dir tests_directory --bs_min 2 --bs_max 2 --horizon 10 --num_cpus 2
 """
 
 
@@ -148,24 +149,24 @@ if __name__ == '__main__':
     parser.add_argument('--long', type=int, default=0)
 
     parser.add_argument('--num_cpus', type=int, default=20)
-    parser.add_argument('--num_gpus', type=int, default=1)
+    parser.add_argument('--num_gpus', type=int, default=0)
 
     # Parameters varying during the experiment
     parser.add_argument('--sigma_min', type=float, default=0.01)
-    parser.add_argument('--sigma_max', type=float, default=10.)
+    parser.add_argument('--sigma_max', type=float, default=0.01)
     parser.add_argument('--alpha_min', type=float, default=1.6)
     parser.add_argument('--alpha_max', type=float, default=2.)
-    parser.add_argument('--width_min', type=int, default=30)
-    parser.add_argument('--width_max', type=int, default=300)
+    parser.add_argument('--width_min', type=int, default=42)
+    parser.add_argument('--width_max', type=int, default=200)
     parser.add_argument('--n_sigma', type=int, default=1)
-    parser.add_argument('--n_alpha', type=int, default=10)
-    parser.add_argument('--n_width', type=int, default=10)
+    parser.add_argument('--n_alpha', type=int, default=6)
+    parser.add_argument('--n_width', type=int, default=6)
 
     # Variation of learning rate and batch size
-    parser.add_argument('--lr_min', type=float, default=0.01)
-    parser.add_argument('--lr_max', type=float, default=0.01)
-    parser.add_argument('--bs_min', type=int, default=32)
-    parser.add_argument('--bs_max', type=int, default=32)
+    parser.add_argument('--lr_min', type=float, default=0.001)
+    parser.add_argument('--lr_max', type=float, default=0.001)
+    parser.add_argument('--bs_min', type=int, default=128)
+    parser.add_argument('--bs_max', type=int, default=128)
     parser.add_argument('--n_lr', type=int, default=1)
     parser.add_argument('--n_bs', type=int, default=1)
 
@@ -177,32 +178,32 @@ if __name__ == '__main__':
     # Parameters which are launcher specific
     # parser.add_argument('--grid_size', type=int, default=10)
     parser.add_argument('--seed', type=int, default=SEED)
-    parser.add_argument('--num_seeds_per_hparam', type=int, default=10)    
+    parser.add_argument('--num_seeds_per_hparam', type=int, default=5)    
 
     parser.add_argument('--result_dir', type=str, default=RESULT_DIR)
 
     # Parameters that are shared among all runs
-    parser.add_argument('--horizon', type=int, default=100000)
+    parser.add_argument('--horizon', type=int, default=10000)
     parser.add_argument('--d', type=int, default=10)
     # parser.add_argument('--eta', type=float, default=0.01)
     parser.add_argument('--n', type=int, default=1000)
     parser.add_argument('--n_val', type=int, default=1000)
-    parser.add_argument('--n_ergodic', type=int, default=2000)
+    parser.add_argument('--n_ergodic', type=int, default=100)
     parser.add_argument('--n_classes', type=int, default=2)
     parser.add_argument('--decay', type=float, default=0.01)
     parser.add_argument('--depth', type=int, default=6)
     parser.add_argument('--normalization', type=int, default=0)
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=0)
-    parser.add_argument('--data_type', type=str, default="fashion-mnist")
-    parser.add_argument('--model', type=str, default="model") # Currently, it only works with batch simulation
+    parser.add_argument('--data_type', type=str, default="cifar10")
+    parser.add_argument('--model', type=str, default="cnn") # Currently, it only works with batch simulation
     parser.add_argument('--stopping', type=int, default=0) # whether or not use the stopping criterion
     parser.add_argument('--scale_sigma', type=int, default=0)
 
 
     # parameters used onlyfor mnist, or other image datasets
-    parser.add_argument('--subset', type=float, default=0.1)
-    parser.add_argument('--resize', type=int, default=28) # original size of mnist is 28
+    parser.add_argument('--subset', type=float, default=1.)
+    parser.add_argument('--resize', type=int, default=32) # original size of mnist is 28
     parser.add_argument('--classes', nargs='+', required=False) # classes used in training
 
 

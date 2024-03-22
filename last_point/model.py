@@ -221,5 +221,10 @@ if __name__ == "__main__":
     # For testing
     noisyCNN = NoisyCNN()
     print(noisyCNN)
+    print(NoisyCNN(width=42).params_number())
+    print(NoisyCNN(width=120).params_number())
+    print(NoisyCNN(width=200).params_number())
+
+
 
 

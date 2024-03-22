@@ -52,7 +52,9 @@ def test_simulation():
             resize=10,
             eta=0.01,
             alpha=alpha,
-            batch_size=32
+            batch_size=32,
+            model="fcnn",
+            data_type="mnist"
         )
 
         assert len(train_accs) == len(val_accs)

@@ -72,7 +72,7 @@ def run_one_simulation(horizon: int,
     if model == "fcnn":
         model = fcnn(d, width, depth, bias, n_classes)
     elif model == "cnn":
-        model = NoisyCNN()
+        model = NoisyCNN(width=width)
     else:
         raise NotImplementedError(f"Model {model} not supported yet")
     logger.info(f"Used model: {model}")
@@ -256,7 +256,7 @@ def run_and_save_one_simulation(result_dir: str,
         classes = [int(c) for c in classes]
     
 
-    elif data_type == "mnist":
+    if data_type == "mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
         data = get_data_simple("mnist", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
@@ -286,7 +286,13 @@ def run_and_save_one_simulation(result_dir: str,
     # TODO remove this hack
     initialization = None 
 
-    n_params = fcnn_num_params(d, width, depth, bias, n_classes)
+    if model=="fcnn":
+        n_params = fcnn_num_params(d, width, depth, bias, n_classes)
+    elif model=="cnn":
+        n_params = NoisyCNN(width=width).params_number()
+    else:
+        raise NotImplementedError(f"Model {model} not supported")
+
 
     ######################################
     # We scale the value of sigma
