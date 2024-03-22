@@ -173,6 +173,7 @@ if __name__ == '__main__':
     parser.add_argument("--script", type=str, default="batch")
 
 
+
     # Parameters which are launcher specific
     # parser.add_argument('--grid_size', type=int, default=10)
     parser.add_argument('--seed', type=int, default=SEED)
@@ -194,6 +195,7 @@ if __name__ == '__main__':
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=0)
     parser.add_argument('--data_type', type=str, default="fashion-mnist")
+    parser.add_argument('--model', type=str, default="model") # Currently, it only works with batch simulation
     parser.add_argument('--stopping', type=int, default=0) # whether or not use the stopping criterion
     parser.add_argument('--scale_sigma', type=int, default=0)
 

@@ -61,7 +61,8 @@ def main(args_):
                                 args_.stopping,
                                 args_.scale_sigma,
                                 args_.batch_size,
-                                args_.id_eta
+                                args_.id_eta,
+                                args_.model
                                 )
 
 

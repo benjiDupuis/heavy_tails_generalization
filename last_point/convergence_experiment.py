@@ -10,7 +10,7 @@ import torch
 from loguru import logger
 
 from data.dataset import get_full_batch_data, get_data_simple
-from last_point.model import fcnn, fcnn_num_params
+from last_point.model import fcnn, fcnn_num_params, NoisyCNN
 from last_point.batch_simulation import asymptotic_constant, run_one_simulation
 
 CONVERGENCE_SEED = int(str(time.time()).split(".")[1])
@@ -41,7 +41,8 @@ def main(result_dir: str='tests_directory',
           resize: int = 28,
           classes: list = None,
           stopping: bool = False,
-          batch_size: int = 32):
+          batch_size: int = 32,
+          model: str = "cnn"):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
@@ -52,14 +53,15 @@ def main(result_dir: str='tests_directory',
     # Generate the data
     # First the seed is set, so that each training will have the same data
 
-    elif data_type == "cifar10":
+    if data_type == "cifar10":
+        logger.info("Using CIFAR10")
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
-        data = get_full_batch_data("cifar10", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
+        data = get_data_simple("cifar10", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
-        d = resize**2 * 3
-        n_classes = 10
+        # d = resize**2 * 3
+        n_classes = 10 if classes is None else len(classes)
 
     elif data_type == "mnist":
         np.random.seed(data_seed)
@@ -110,7 +112,8 @@ def main(result_dir: str='tests_directory',
                                     compute_gradients=compute_gradient,
                                     bias=bias,
                                     stopping=stopping,
-                                    batch_size=batch_size)
+                                    batch_size=batch_size,
+                                    model=model)
     
     if converged:
             logger.info('Experiment converged!')
@@ -215,10 +218,10 @@ def main(result_dir: str='tests_directory',
 alpha_list = [1.4, 1.6, 1.8, 2.]
 
 def several_main(result_dir: str='tests_directory',
-          horizon: int=20001, 
+          horizon: int=5000, 
           d: int=10,
-          eta: float=0.01,
-          sigma: float=10.,
+          eta: float=0.001,
+          sigma: float=0.,
           alpha_list: list=[1.8],
           n: int = 100,
           n_val: int = 1000,
@@ -234,12 +237,13 @@ def several_main(result_dir: str='tests_directory',
           id_alpha: int = 0,
           compute_gradient: bool = False,
           bias: bool = False,
-          data_type: str = "mnist",
+          data_type: str = "cifar10",
           subset: float = 1.,
           resize: int = 28,
-          classes: list = None,
+          classes: list = [1,2],
           stopping: bool = False,
-          batch_size: int = 128):
+          batch_size: int = 128,
+          model: str = "cnn"):
 
     exp_path = Path(result_dir) / str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0]
 
@@ -248,7 +252,7 @@ def several_main(result_dir: str='tests_directory',
     acc_val_tabs = []
     
     for a in alpha_list:
-        acc_train, acc_val, batch_acc_tab = main(result_dir=str(exp_path / f"alpha_{a}"),\
+        acc_train, acc_val, _, batch_acc_tab = main(result_dir=str(exp_path / f"alpha_{a}"),\
                                     horizon=horizon, 
                                     d=d,
                                     eta=eta,
@@ -273,7 +277,8 @@ def several_main(result_dir: str='tests_directory',
                                     resize = resize,
                                     classes = classes,
                                     stopping = stopping,
-                                    batch_size=batch_size)
+                                    batch_size=batch_size,
+                                    model=model)
         
         plt.figure()
         plt.plot(np.arange(len(batch_acc_tab)), batch_acc_tab)

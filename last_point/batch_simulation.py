@@ -15,7 +15,7 @@ from levy.levy import generate_levy_for_simulation
 
 from data.dataset import get_full_batch_data, get_data_simple
 from last_point.eval import eval
-from last_point.model import fcnn, fcnn_num_params
+from last_point.model import fcnn, fcnn_num_params, NoisyCNN
 from last_point.utils import robust_mean, poly_alpha
 
 
@@ -35,7 +35,8 @@ def run_one_simulation(horizon: int,
                         compute_gradients: bool = False,
                         bias: bool = False,
                         stopping: bool = False,
-                        batch_size: int = -1):
+                        batch_size: int = -1,
+                        model: str = "cnn"):
     """
     Data format should be (x_train, y_train, x_val, y_val), all dataloaders
     stopping: whether or not stop the training at convergence,
@@ -68,7 +69,13 @@ def run_one_simulation(horizon: int,
 
     torch.manual_seed(seed)
     # np.random.seed(seed)
-    model = fcnn(d, width, depth, bias, n_classes)
+    if model == "fcnn":
+        model = fcnn(d, width, depth, bias, n_classes)
+    elif model == "cnn":
+        model = NoisyCNN()
+    else:
+        raise NotImplementedError(f"Model {model} not supported yet")
+    logger.info(f"Used model: {model}")
     model.to(device)
 
     logger.info(f"On device {device}")
@@ -234,7 +241,8 @@ def run_and_save_one_simulation(result_dir: str,
                         stopping: bool = False,
                         scale_sigma: bool = True,
                         batch_size: int = 32,
-                        id_eta: int = 0):
+                        id_eta: int = 0,
+                        model:str = "cnn"):
     """
     id_sigma and id_alpha are only there to be copied in the final JSON file.
     """
@@ -252,6 +260,15 @@ def run_and_save_one_simulation(result_dir: str,
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
         data = get_data_simple("mnist", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
+
+        # adapt the input dimension
+        d = resize**2
+        n_classes = 10 if classes is None else len(classes)
+
+    elif data_type == "cifar10":
+        np.random.seed(data_seed)
+        torch.manual_seed(data_seed)
+        data = get_data_simple("cifar10", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2
@@ -307,7 +324,8 @@ def run_and_save_one_simulation(result_dir: str,
                                     compute_gradients=compute_gradient,
                                     bias=bias,
                                     stopping=stopping,
-                                    batch_size=batch_size)
+                                    batch_size=batch_size,
+                                    model=model)
     
     if converged:
             logger.info('Experiment converged!')
