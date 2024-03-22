@@ -15,8 +15,6 @@ from levy.levy import generate_levy_for_simulation
 
 from data.dataset import get_full_batch_data, get_data_simple
 from last_point.eval import eval
-from last_point.gaussian_mixture import sample_standard_gaussian_mixture
-from last_point.iris import sample_iris_dataset
 from last_point.model import fcnn, fcnn_num_params
 from last_point.utils import robust_mean, poly_alpha
 

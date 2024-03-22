@@ -39,7 +39,7 @@ def test_simulation():
 
     with tempfile.TemporaryDirectory() as output_dir:
 
-        train_accs, val_accs, result_dir = convergence_experiment(
+        train_accs, val_accs, _, result_dir = convergence_experiment(
             output_dir,
             3,
             3,
@@ -51,7 +51,8 @@ def test_simulation():
             subset=0.001,
             resize=10,
             eta=0.01,
-            alpha=alpha
+            alpha=alpha,
+            batch_size=32
         )
 
         assert len(train_accs) == len(val_accs)

@@ -10,8 +10,6 @@ import torch
 from loguru import logger
 
 from data.dataset import get_full_batch_data, get_data_simple
-from last_point.gaussian_mixture import sample_standard_gaussian_mixture
-from last_point.iris import sample_iris_dataset
 from last_point.model import fcnn, fcnn_num_params
 from last_point.batch_simulation import asymptotic_constant, run_one_simulation
 
@@ -210,7 +208,7 @@ def main(result_dir: str='tests_directory',
     plt.savefig(str(output_path))
     plt.close()
 
-    return train_accs, val_accs, batch_acc_tab
+    return train_accs, val_accs, batch_acc_tab, str(result_dir)
 
 
 
