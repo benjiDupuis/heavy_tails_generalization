@@ -131,6 +131,12 @@ def main(args_):
     logger.info(f"Launched a total of {exp_num} experiments")
 
 
+"""
+Test Commmand
+PYTHONPATH=$PWD python launcher_parallel.py --num_gpus 0 --n_sigma 2 --n_width 1 --n_alpha 1 --n_lr 2 --n_bs 2  --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1 --width_max 100  --result_dir tests_directory --num_seeds_per_hparam 1 
+"""
+
+
 
 if __name__ == '__main__':
 
@@ -164,7 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_bs', type=int, default=1)
 
     # Do we call the batch simu or not
-    parser.add_argument("--script", type=str, default="full_batch")
+    parser.add_argument("--script", type=str, default="batch")
 
 
     # Parameters which are launcher specific
