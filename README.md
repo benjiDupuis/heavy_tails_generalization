@@ -65,7 +65,7 @@ python analysis/multiple_kendall.py result_example/all_results.json
 You can also use the argument `--av_path` to obtain the black curve shown in the paper.
 To compute the regression of $\alpha$ from the accuracy gap, run:
 ```
-python analysis/regressions.py result_example/average_results.json
+python analysis/regressions.py result_example/all_results.json
 ```
 
 

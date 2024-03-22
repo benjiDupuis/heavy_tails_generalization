@@ -97,16 +97,72 @@ def regressions_several_seeds_dim(json_path: str):
         plt.grid()
         plt.legend()
 
-        plt.legend()
-
         plt.savefig(str(alpha_reg_path))
         plt.close()
 
 
 
+def plot_generalization_against_d(json_path: str):
+
+    """
+    json_path shoul be an average_results file
+    """
+    json_path = Path(json_path)
+    assert json_path.exists(), str(json_path)
+
+    output_dir = json_path.parent / "figures"
+    if not output_dir.is_dir():
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    with open(str(json_path), "r") as json_file:
+        results = json.load(json_file)
+
+    n_exp = len(results.keys())
+    logger.info(f"Found {n_exp} experiments")
+
+    alpha_values = {}
+
+    for key in results.keys():
+
+        a = results[key]["id_alpha"]
+        alpha = results[key]["alpha"]
+
+        if alpha >= 1.7:
+
+            if a not in alpha_values.keys():
+                alpha_values[a] = {
+                    "alpha": alpha,
+                    "gen": [],
+                    "d": []
+                }
+
+            alpha_values[a]["alpha"] = alpha
+            alpha_values[a]["gen"].append(results[key]["acc_generalization"])
+            alpha_values[a]["d"].append(results[key]["n_params"])
+
+    plt.figure()
+
+    for alpha_id in alpha_values.keys():
+
+        indices = np.argsort(alpha_values[alpha_id]["d"])
+        alpha = alpha_values[alpha_id]["alpha"]
+        plt.loglog(np.array(alpha_values[alpha_id]["d"])[indices],
+                    np.array(alpha_values[alpha_id]["gen"])[indices],
+                    "--x",
+                    label=f"alpha: {round(alpha, 2)}")
+
+    plt.grid(visible=True, which="minor")
+    plt.legend()
+
+    loglog_path = (output_dir / "log_gen_vs_log_d").with_suffix(".png")
+    logger.info(f"Saving regression figure in {str(loglog_path)}")
+
+    plt.savefig(str(loglog_path))
+
 
 if __name__ =="__main__":
-    fire.Fire(regressions_several_seeds_dim)
+    # fire.Fire(regressions_several_seeds_dim)
+    fire.Fire(plot_generalization_against_d)
 
 
 
