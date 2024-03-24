@@ -256,7 +256,7 @@ def analyze_one_seed(json_path: str, R: float=1.):
         # The value of R can be changed here
         # In the example provided (the one in the main section of the paper),
         # R is estimated to approximately 7
-        R = 7
+        R = 15
 
         # The factor two appearing here comes from an optimized PAC-Bayesian generalization bound for bounded losses
         acc_bound_tab.append(100. * np.sqrt((constant * horizon * lr * gradient)/\

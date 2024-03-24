@@ -161,8 +161,8 @@ def plot_generalization_against_d(json_path: str):
 
 
 if __name__ =="__main__":
-    # fire.Fire(regressions_several_seeds_dim)
-    fire.Fire(plot_generalization_against_d)
+    fire.Fire(regressions_several_seeds_dim)
+    # fire.Fire(plot_generalization_against_d)
 
 
 

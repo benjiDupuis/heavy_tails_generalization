@@ -43,3 +43,5 @@ levy_plots
 experiments_utils.py
 launcher_parallel.py
 run_exp.py
+
+weights/*

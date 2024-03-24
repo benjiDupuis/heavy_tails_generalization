@@ -225,6 +225,10 @@ if __name__ == "__main__":
     print(NoisyCNN(width=120).params_number())
     print(NoisyCNN(width=200).params_number())
 
+    s = noisyCNN.__str__()
+    from loguru import logger
+    logger.info(f"string: {s}")
+
 
 
 

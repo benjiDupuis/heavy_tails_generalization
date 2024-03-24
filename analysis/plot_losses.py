@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 ####################
-This script is the one we used to plot the evolution of the test and train accuracies
+#This script is the one we used to plot the evolution of the test and train accuracies
 ###################
 
 

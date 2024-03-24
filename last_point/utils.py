@@ -82,7 +82,7 @@ def regression_selection(x_tab: np.ndarray,
 
 
 def robust_mean(tab: np.ndarray,
-                quantile_up: float = 0.15,
+                quantile_up: float = 0.0,
                 quantile_low: float = 0.0) -> float:
     ''''
     Function used to compute a robust mean of the accuracy error over the last iterations
