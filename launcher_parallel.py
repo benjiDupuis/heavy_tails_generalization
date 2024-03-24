@@ -144,7 +144,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--date', type=str, default=str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0])
-    parser.add_argument('--mode', type=str, default="euler_slurm")
+    parser.add_argument('--mode', type=str, default="local")
     parser.add_argument('--long', type=int, default=0)
 
     parser.add_argument('--num_cpus', type=int, default=20)
@@ -158,8 +158,8 @@ if __name__ == '__main__':
     parser.add_argument('--width_min', type=int, default=20)
     parser.add_argument('--width_max', type=int, default=200)
     parser.add_argument('--n_sigma', type=int, default=1)
-    parser.add_argument('--n_alpha', type=int, default=6)
-    parser.add_argument('--n_width', type=int, default=6)
+    parser.add_argument('--n_alpha', type=int, default=5)
+    parser.add_argument('--n_width', type=int, default=5)
 
     # Variation of learning rate and batch size
     parser.add_argument('--lr_min', type=float, default=0.001)
