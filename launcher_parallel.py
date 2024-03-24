@@ -147,8 +147,8 @@ if __name__ == '__main__':
     parser.add_argument('--mode', type=str, default="euler_slurm")
     parser.add_argument('--long', type=int, default=0)
 
-    parser.add_argument('--num_cpus', type=int, default=10)
-    parser.add_argument('--num_gpus', type=int, default=2)
+    parser.add_argument('--num_cpus', type=int, default=20)
+    parser.add_argument('--num_gpus', type=int, default=0)
 
     # Parameters varying during the experiment
     parser.add_argument('--sigma_min', type=float, default=0.01)
@@ -175,17 +175,17 @@ if __name__ == '__main__':
     # Parameters which are launcher specific
     # parser.add_argument('--grid_size', type=int, default=10)
     parser.add_argument('--seed', type=int, default=SEED)
-    parser.add_argument('--num_seeds_per_hparam', type=int, default=1)    
+    parser.add_argument('--num_seeds_per_hparam', type=int, default=10)    
 
     parser.add_argument('--result_dir', type=str, default=RESULT_DIR)
 
     # Parameters that are shared among all runs
-    parser.add_argument('--horizon', type=int, default=30000)
+    parser.add_argument('--horizon', type=int, default=5000)
     parser.add_argument('--d', type=int, default=10)
     # parser.add_argument('--eta', type=float, default=0.01)
     parser.add_argument('--n', type=int, default=1000)
     parser.add_argument('--n_val', type=int, default=1000)
-    parser.add_argument('--n_ergodic', type=int, default=2000)
+    parser.add_argument('--n_ergodic', type=int, default=200)
     parser.add_argument('--n_classes', type=int, default=2)
     parser.add_argument('--decay', type=float, default=0.01)
     parser.add_argument('--depth', type=int, default=6)
