@@ -43,19 +43,21 @@ def alpha_kendall(results: dict, key: str = "n_params", gen_key="acc_generalizat
 
     for key in tqdm(results.keys()):
 
-        if results[key][varying_id] not in fixed_results.keys():
-            fixed_results[results[key][varying_id]] = {
-                "alpha": [],
-                "gen": []
-            }
+        if results[key]["alpha"] >= 1.6:
 
-        fixed_results[results[key][varying_id]]["alpha"].append(
-            results[key]["alpha"]
-        )
-        fixed_results[results[key][varying_id]]["gen"].append(
-            results[key][gen_key]
-        )
-        fixed_results[results[key][varying_id]][varying] = results[key][varying]
+            if results[key][varying_id] not in fixed_results.keys():
+                fixed_results[results[key][varying_id]] = {
+                    "alpha": [],
+                    "gen": []
+                }
+
+            fixed_results[results[key][varying_id]]["alpha"].append(
+                results[key]["alpha"]
+            )
+            fixed_results[results[key][varying_id]]["gen"].append(
+                results[key][gen_key]
+            )
+            fixed_results[results[key][varying_id]][varying] = results[key][varying]
 
     for v in tqdm(fixed_results.keys()):
 
@@ -91,7 +93,7 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
     assert psi.shape[1] == len(results.keys())
 
     n = len(results.keys())
-    psi_means, psi_deviations = matrix_robust_mean(psi)
+    psi_means, psi_deviations = matrix_robust_mean(psi, quantile=0.)
 
     # we order varying_tab
     indices = np.argsort(varying_tab)
@@ -164,8 +166,15 @@ def plot_alpha_kendall(json_path: str, key: str="n_params"):
 
     varying_tab, kendall_tab = alpha_kendall(results, key=key)
 
+    indices = np.argsort(varying_tab)
+    varying_tab = varying_tab[indices]
+    kendall_tab = kendall_tab[indices]
+
     plt.figure()
-    plt.scatter(varying_tab, kendall_tab)
+
+    plt.plot(varying_tab, kendall_tab, "--x", color="k",\
+                    label=r"$\mathbf{\tau}$ of the mean generalization error wrt $\alpha$")
+
     xlabel = "d" if key == "n_params" else "sigma"
     plt.xlabel(xlabel)
     if key == "sigma":
@@ -180,6 +189,11 @@ def plot_alpha_kendall(json_path: str, key: str="n_params"):
     fig_name = "alpha_correlation"
     output_path = (output_dir / fig_name).with_suffix(".png")
 
+    plt.plot(varying_tab, np.zeros(len(varying_tab)), "--", color="r")
+
+    plt.grid()
+    plt.legend()
+
     plt.savefig(str(output_path))
     plt.close()
 
@@ -187,8 +201,8 @@ def plot_alpha_kendall(json_path: str, key: str="n_params"):
 
 
 if __name__ == "__main__":
-    # fire.Fire(alpha_kendall_all_seeds)
-    fire.Fire(plot_alpha_kendall)
+    fire.Fire(alpha_kendall_all_seeds)
+    # fire.Fire(plot_alpha_kendall)
 
 
 

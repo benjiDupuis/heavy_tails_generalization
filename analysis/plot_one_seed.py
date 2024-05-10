@@ -41,8 +41,11 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
                      cmap=color_map)
     cbar = plt.colorbar(sc)
     cbar.set_label(r"$\mathbf{\alpha}$")
+
     plt.xlabel(xlabel, weight="bold")
+    plt.ylabel("Estimated bound", weight="bold")
     logger.info(f"Saving a bound plot in {str(output_path)}")
+    plt.grid()
     plt.savefig(str(output_path), bbox_inches='tight')
     plt.close()
 
@@ -256,7 +259,7 @@ def analyze_one_seed(json_path: str, R: float=1.):
         # The value of R can be changed here
         # In the example provided (the one in the main section of the paper),
         # R is estimated to approximately 7
-        R = 30
+        R = 7
 
         # The factor two appearing here comes from an optimized PAC-Bayesian generalization bound for bounded losses
         acc_bound_tab.append(100. * np.sqrt((constant * horizon * lr * gradient)/\

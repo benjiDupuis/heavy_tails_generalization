@@ -186,8 +186,8 @@ def plot_alpha_pearson(json_path: str, key: str="n_params"):
 
 
 if __name__ == "__main__":
-    # fire.Fire(alpha_pearson_all_seeds)
-    fire.Fire(plot_alpha_pearson)
+    fire.Fire(alpha_pearson_all_seeds)
+    # fire.Fire(plot_alpha_pearson)
 
 
 

@@ -35,7 +35,8 @@ def run_one_simulation(horizon: int,
                         compute_gradients: bool = False,
                         bias: bool = False,
                         stopping: bool = False,
-                        batch_size: int = -1):
+                        batch_size: int = -1,
+                        model: str =  "fcnn"):
     """
     This is the main simulation script, the arguments are:
     horizon: number of iterations
@@ -77,8 +78,11 @@ def run_one_simulation(horizon: int,
     n = x_train.shape[0]
 
     torch.manual_seed(seed)
-    model = fcnn(d, width, depth, bias, n_classes)
-    model.to(device)
+    if model == "fcnn":
+        model = fcnn(d, width, depth, bias, n_classes)
+        model.to(device)
+    else:
+        raise NotImplementedError(f"model {model} not taken into account yet")
 
     logger.info(f"On device {device}")
     
@@ -238,7 +242,8 @@ def run_and_save_one_simulation(result_dir: str,
                         stopping: bool = False,
                         scale_sigma: bool = True,
                         batch_size: int = -1,
-                        id_eta: int = 0):
+                        id_eta: int = 0,
+                        model: str = "fcnn"):
 
     """
     result_dir: where to save the results
@@ -274,7 +279,7 @@ def run_and_save_one_simulation(result_dir: str,
         classes = [int(c) for c in classes]
 
 
-    elif data_type == "mnist":
+    if data_type == "mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
         data = get_full_batch_data("mnist", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
@@ -291,6 +296,18 @@ def run_and_save_one_simulation(result_dir: str,
         # adapt the input dimension
         d = resize**2
         n_classes = 10 if classes is None else len(classes)
+
+    elif data_type == "cifar10":
+        np.random.seed(data_seed)
+        torch.manual_seed(data_seed)
+        data = get_full_batch_data("cifar10", "~/data", subset_percentage=subset, resize=resize, class_list=classes)
+
+        # adapt the input dimension
+        d = 3 * resize**2
+        n_classes = 10 if classes is None else len(classes)
+
+    else: 
+        raise NotImplementedError(f"Model {model} not supported yet")
 
     initialization = None 
 
@@ -327,7 +344,8 @@ def run_and_save_one_simulation(result_dir: str,
                                     compute_gradients=compute_gradient,
                                     bias=bias,
                                     stopping=stopping,
-                                    batch_size=batch_size)
+                                    batch_size=batch_size,
+                                    model=model)
     
     if converged:
             logger.info('Experiment converged!')

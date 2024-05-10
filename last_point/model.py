@@ -198,14 +198,14 @@ def fcnn(input_dim: int,
 
 class NoisyCNN(NoisyGDModel):
 
-    def __init__(self, width: int = 120):
+    def __init__(self, width: int = 120, pre_width: int=40, out_features: int=10):
         super().__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, width)
-        self.fc3 = nn.Linear(width, 10)
+        self.fc1 = nn.Linear(16 * 5 * 5, pre_width)
+        self.fc2 = nn.Linear(pre_width, width)
+        self.fc3 = nn.Linear(width, out_features)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
@@ -220,7 +220,8 @@ class NoisyCNN(NoisyGDModel):
 if __name__ == "__main__":
     # For testing
     noisyCNN = NoisyCNN()
-    print(noisyCNN)
+    s = noisyCNN.__str__()
+    print(s)
     print(NoisyCNN(width=42).params_number())
     print(NoisyCNN(width=120).params_number())
     print(NoisyCNN(width=200).params_number())

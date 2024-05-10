@@ -72,7 +72,7 @@ def run_one_simulation(horizon: int,
     if model == "fcnn":
         model = fcnn(d, width, depth, bias, n_classes)
     elif model == "cnn":
-        model = NoisyCNN(width=width)
+        model = NoisyCNN(width=width, out_features=n_classes)
     else:
         raise NotImplementedError(f"Model {model} not supported yet")
     logger.info(f"Used model: {model}")
@@ -259,7 +259,7 @@ def run_and_save_one_simulation(result_dir: str,
     if data_type == "mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
-        data = get_data_simple("mnist", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
+        data = get_data_simple("mnist", "~/data", batch_size, 256, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2
@@ -268,16 +268,16 @@ def run_and_save_one_simulation(result_dir: str,
     elif data_type == "cifar10":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
-        data = get_data_simple("cifar10", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
+        data = get_data_simple("cifar10", "~/data", batch_size, 256, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
-        d = resize**2
+        d = resize**2 * 3
         n_classes = 10 if classes is None else len(classes)
 
     elif data_type == "fashion-mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
-        data = get_data_simple("fashion-mnist", "~/data", batch_size, 1000, subset=subset, resize=resize, class_list=classes)
+        data = get_data_simple("fashion-mnist", "~/data", batch_size, 256, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2
@@ -289,7 +289,7 @@ def run_and_save_one_simulation(result_dir: str,
     if model=="fcnn":
         n_params = fcnn_num_params(d, width, depth, bias, n_classes)
     elif model=="cnn":
-        n_params = NoisyCNN(width=width).params_number()
+        n_params = NoisyCNN(width=width, out_features=n_classes).params_number()
     else:
         raise NotImplementedError(f"Model {model} not supported")
 

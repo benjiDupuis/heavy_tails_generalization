@@ -140,7 +140,7 @@ def plot_generalization_against_d(json_path: str):
             alpha_values[a]["gen"].append(results[key]["acc_generalization"])
             alpha_values[a]["d"].append(results[key]["n_params"])
 
-    plt.figure()
+    plt.figure(figsize=(9,6))
 
     for alpha_id in alpha_values.keys():
 
@@ -153,6 +153,8 @@ def plot_generalization_against_d(json_path: str):
 
     plt.grid(visible=True, which="minor")
     plt.legend()
+    plt.ylabel(r"$\mathbf{\log(\hat{G})}$", weight="bold", fontsize=15)
+    plt.xlabel(r"$\mathbf{\log(d)}$", weight="bold", fontsize=15)
 
     loglog_path = (output_dir / "log_gen_vs_log_d").with_suffix(".png")
     logger.info(f"Saving regression figure in {str(loglog_path)}")
