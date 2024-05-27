@@ -42,8 +42,12 @@ levy_plots
 
 
 # launch specific scripts
-experiments_utils.py
+experiment_utils.py
 launcher_parallel.py
 run_exp.py
+util.py
 
 weights/*
+weights
+
+pretraining
