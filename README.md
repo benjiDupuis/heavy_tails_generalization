@@ -1,6 +1,9 @@
-# Code for our experimental results
+# Generalization Properties of Heavy-tailed Stochastic Differential Equations
 
-We provide the code base that we used to produce our main experiments and figures. All our implementation has been done in python, tested with python `3.11.7`.
+This is the source code for our ICML 2024 paper [Generalization Bounds for Heavy-Tailed SDEs through the Fractional Fokker-Planck Equation](https://arxiv.org/abs/2402.07723).
+
+We provide the code base that we used to produce our main experiments and figures. 
+All our implementation has been done in python, tested with python `3.11.7`.
 
 ## Installation
 
@@ -66,4 +69,21 @@ You can also use the argument `--av_path` to obtain the black curve shown in the
 To compute the regression of $\alpha$ from the accuracy gap, run:
 ```
 python analysis/regressions.py result_example/all_results.json
+```
+
+
+## Citation
+
+If you use our work, please cite:
+
+```
+@inproceedings{dupuis2024generalization,
+      title={Generalization Bounds for Heavy-Tailed SDEs through the Fractional Fokker-Planck Equation}, 
+      booktitle = {International Conference on Machine Learning 2024 (ICML 2024)}
+      author={Benjamin Dupuis and Umut Şimşekli},
+      year={2024},
+      eprint={2402.07723},
+      archivePrefix={arXiv},
+      primaryClass={stat.ML}
+}
 ```
