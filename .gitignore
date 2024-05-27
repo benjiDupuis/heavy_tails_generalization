@@ -22,6 +22,7 @@ results
 simulation.batch
 
 *.batch
+convergence.batch
 
 .pytest_cache/
 
