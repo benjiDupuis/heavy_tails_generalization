@@ -7,6 +7,8 @@
 
 *.batch
 
+README_DEV.md
+
 result_example/figures
 
 heavy_tails/

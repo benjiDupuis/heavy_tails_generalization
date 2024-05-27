@@ -17,7 +17,7 @@ python -m pip install -r requirements.txt
 
 We provide some pytests to assess that the installation went well>
 ````
-pytest -x -vv
+pytest -vv
 ````
 All tests should pass.
 
@@ -67,39 +67,3 @@ To compute the regression of $\alpha$ from the accuracy gap, run:
 ```
 python analysis/regressions.py result_example/all_results.json
 ```
-
-
-### Batch simulation tracking (final_results)
-
-CNN on CIFAR10:
-
-Experiment  2024-03-22_16_15_03
- - 10% classes 1 2 3 4
- - good estimated bound plot
- - very weak plots on correlation and regression
- - only one seed
- - batch size 128
-
-Experiment 2024-03-23-18-16-24: good acc bound plot
-
-Experiment  2024-03-24_23_06_21
- - 10% classes 1 2
- - good estimated bound plot
- - very weak plots on correlation and regression
- - Multiple seeds
- - batch size 128
-
-Experiment  2024-03-25_00_14_17
- - 10% classes 1 2
- - good estimated bound plot
- - very weak plots on correlation and regression, but maybe best sofar
- - Multiple seeds
- - batch size 128
-
-
-FCN2 on CIFAR10:
-
-Experiment 2024-03-26_18_09_43
-
-
-

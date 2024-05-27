@@ -15,7 +15,7 @@ from last_point.utils import accuracy
 from levy.levy import generate_levy_for_simulation
 
 from data.dataset import get_full_batch_data
-from last_point.model import fcnn, fcnn_num_params
+from last_point.model import fcnn, fcnn_num_params, NoisyCNN
 from last_point.utils import robust_mean, poly_alpha
 
 
@@ -81,10 +81,13 @@ def run_one_simulation(horizon: int,
     if model == "fcnn":
         model = fcnn(d, width, depth, bias, n_classes)
         model.to(device)
+    elif model == "cnn":
+        model = NoisyCNN(width=width, out_features=n_classes)
     else:
         raise NotImplementedError(f"model {model} not taken into account yet")
 
     logger.info(f"On device {device}")
+    logger.info(f"Model: {model.__str__()}")
     
     opt = torch.optim.SGD(model.parameters(),
                            lr = eta,
@@ -307,7 +310,7 @@ def run_and_save_one_simulation(result_dir: str,
         n_classes = 10 if classes is None else len(classes)
 
     else: 
-        raise NotImplementedError(f"Model {model} not supported yet")
+        raise NotImplementedError(f"Dataset {data_type} not supported yet")
 
     initialization = None 
 
@@ -413,10 +416,9 @@ def run_and_save_one_simulation(result_dir: str,
     rname = f"result_{id_sigma}_{id_alpha}_{width}_{eta_name}_{batch_size}"
     result_path = (result_dir / rname).with_suffix(".json")
 
-    logger.info(f"Saving results JSON file in {str(result_path)}")
-
     with open(str(result_path), "w") as result_file:
         json.dump(result_dict, result_file, indent = 2)
+    logger.info(f"Saved results JSON file in {str(result_path)} ✅")
 
 
 

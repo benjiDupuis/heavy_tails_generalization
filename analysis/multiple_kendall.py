@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List
 
 import fire
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
@@ -10,6 +11,11 @@ from scipy.stats import kendalltau
 from tqdm import tqdm
 
 from last_point.utils import matrix_robust_mean
+
+font = {'weight' : 'bold',
+        'size'   : 12}
+
+matplotlib.rc('font', **font)
 
 
 #########################
@@ -145,9 +151,17 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
         plt.plot(varying_tab, kendall_tab, "--", color="k",\
                     label=r"$\mathbf{\tau}$ of the mean generalization error wrt $\alpha$")
 
+    plt.ticklabel_format(axis='x')
     plt.legend()
     plt.grid()
-    plt.savefig(str(output_path))
+    plt.tight_layout()
+
+    plt.savefig(str(output_path), bbox_inches="tight")
+
+    output_path = (output_dir / fig_name).with_suffix(".pdf")
+    logger.info(f"Saving figures in {str(output_path)}")
+    plt.savefig(str(output_path), bbox_inches="tight")
+
     plt.close()
 
     return varying_tab, psi_means, psi_deviations
@@ -155,7 +169,7 @@ def alpha_kendall_all_seeds(json_path: str, key: str = "n_params", av_path: str 
     
 def plot_alpha_kendall(json_path: str, key: str="n_params"):
     """
-    dict is one seedor average_results
+    dict is one seed or average_results
     """
 
     json_path = Path(json_path)
@@ -202,7 +216,6 @@ def plot_alpha_kendall(json_path: str, key: str="n_params"):
 
 if __name__ == "__main__":
     fire.Fire(alpha_kendall_all_seeds)
-    # fire.Fire(plot_alpha_kendall)
 
 
 

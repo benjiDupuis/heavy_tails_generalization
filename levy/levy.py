@@ -1,10 +1,19 @@
 from pathlib import Path
 
 import fire
+import matplotlib
+import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
 from scipy.stats import levy_stable
+
+plt.style.use("ggplot")
+
+font = {'weight' : 'bold',
+        'size'   : 22}
+
+matplotlib.rc('font', **font)
 
 
 def simulate_levy(d, alp, eta):
@@ -72,24 +81,40 @@ def plot_levy(n_iter: int = 1000,
 
     point = np.zeros(2)
 
-    plt.figure()
-
     for k in range(0, n_iter):
-        next_point = point + noise[k, :]
-        plt.plot([point[0], next_point[0]],\
-                 [point[1], next_point[1]],
-                   color="k")
-        point += noise[k, :]      
+        if k < n_iter - 1:
+            next_point = point + noise[k, :]
+            plt.plot([point[0], next_point[0]],\
+                        [point[1], next_point[1]],
+                        color="g")
+            point += noise[k, :]  
+        else: 
+            next_point = point + noise[k, :]
+            plt.plot([point[0], next_point[0]],\
+                        [point[1], next_point[1]],
+                        color="g", label=r"$\alpha=$"+f"{alpha}")
+            point += noise[k, :]     
         
-    plt.title(f"Levy process simulation for alpha = {alpha}")
+    # plt.title(f"Levy process simulation for alpha = {alpha}")
 
-    output_dir = Path(output_dir)
-    if not output_dir.is_dir():
-        output_dir.mkdir(parents=True, exist_ok=True)
+    # plt.tight_layout()
+    plt.legend(loc="upper left")
 
-    output_path = (output_dir / f"alpha_{alpha}".replace(".", "_")).with_suffix(".png")
-    logger.info(f"Saving figure in {str(output_path)}")
-    plt.savefig(str(output_path))
+    if output_dir is not None:
+
+        output_dir = Path(output_dir)
+        if not output_dir.is_dir():
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+        output_path = (output_dir / f"alpha_{alpha}".replace(".", "_")).with_suffix(".png")
+        logger.info(f"Saving figure in {str(output_path)}", pad_inches=0.01)
+        plt.savefig(str(output_path))
+
+        output_path = (output_dir / f"alpha_{alpha}".replace(".", "_")).with_suffix(".pdf")
+        logger.info(f"Saving figure in {str(output_path)}", pad_inches=0.01)
+        plt.savefig(str(output_path))
+
+        plt.close()
 
 
 def main(alpha: float = 1.8,
@@ -100,8 +125,53 @@ def main(alpha: float = 1.8,
     np.random.seed(seed)
     plot_levy(1000, alpha, eta, output_dir)
 
+    plt.close()
+
+def four_plots(eta: float = 0.001,
+         output_dir: str = "levy_plots",
+         seed: int = 1):
+
+    output_dir = Path(output_dir)
+    if not output_dir.is_dir():
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # plt.figure()
+
+    plt.figure(figsize = (10, 10))
+    gs1 = gridspec.GridSpec(2,2)
+    gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
+
+
+    ax =plt.subplot(221)
+    np.random.seed(seed)
+    plot_levy(1000, 2., eta, None)
+
+    ax =plt.subplot(222)
+    np.random.seed(seed)
+    plot_levy(1000, 1.8, eta, None)
+
+    ax =plt.subplot(223)
+    np.random.seed(seed)
+    plot_levy(1000, 1.6, eta, None)
+
+    ax =plt.subplot(224)
+    np.random.seed(seed)
+    plot_levy(1000, 1.4, eta, None)
+
+    plt.tight_layout()
+
+    output_path = (output_dir / "four_levy_plots").with_suffix(".png")
+    logger.info(f"Saving figure in {str(output_path)}", bbox_inches=0.01)
+    plt.savefig(str(output_path))
+
+    output_path = (output_dir / "four_levy_plots").with_suffix(".pdf")
+    logger.info(f"Saving figure in {str(output_path)}", bbox_inches=0.01)
+    plt.savefig(str(output_path))
+
+    plt.close()
+
 if __name__ == "__main__":
-    fire.Fire(main)
+    fire.Fire(four_plots)
 
 
 

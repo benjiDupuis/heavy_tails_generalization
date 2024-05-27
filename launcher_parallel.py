@@ -133,7 +133,7 @@ def main(args_):
 
 """
 Test Commmand
-PYTHONPATH=$PWD python launcher_parallel.py --num_gpus 0 --n_sigma 2 --n_width 1 --n_alpha 1 --n_lr 2 --n_bs 2  --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1 --width_max 100  --result_dir tests_directory --num_seeds_per_hparam 1 
+PYTHONPATH=$PWD python launcher_parallel.py --num_gpus 0 --model cnn --data_type cifar10 --n_sigma 1 --n_width 2 --n_alpha 1 --n_lr 1 --n_bs 1  --n 10 --n_val 10 --n_ergodic 10 --d 2 --depth 0 --horizon 10 --compute_gradients 1 --width_max 100  --result_dir tests_directory --num_seeds_per_hparam 1 
 PYTHONPATH=$PWD python launcher_parallel.py --num_gpus 0 --n_width 2 --n_alpha 1 --subset 0.001 --classes 0 1 --result_dir tests_directory --bs_min 2 --bs_max 2 --horizon 10 --num_cpus 2
 """
 
@@ -145,37 +145,37 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--date', type=str, default=str(datetime.datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0])
     parser.add_argument('--mode', type=str, default="euler_slurm")
-    parser.add_argument('--long', type=int, default=0)
+    parser.add_argument('--long', type=int, default=1)
 
-    parser.add_argument('--num_cpus', type=int, default=30)
+    parser.add_argument('--num_cpus', type=int, default=2)
     parser.add_argument('--num_gpus', type=int, default=0)
 
     # Parameters varying during the experiment
     parser.add_argument('--sigma_min', type=float, default=0.01)
     parser.add_argument('--sigma_max', type=float, default=0.01)
-    parser.add_argument('--alpha_min', type=float, default=1.7)
+    parser.add_argument('--alpha_min', type=float, default=1.6)
     parser.add_argument('--alpha_max', type=float, default=2.)
     parser.add_argument('--width_min', type=int, default=10)
-    parser.add_argument('--width_max', type=int, default=180)
+    parser.add_argument('--width_max', type=int, default=200)
     parser.add_argument('--n_sigma', type=int, default=1)
     parser.add_argument('--n_alpha', type=int, default=6)
     parser.add_argument('--n_width', type=int, default=6)
 
     # Variation of learning rate and batch size
-    parser.add_argument('--lr_min', type=float, default=0.01)
-    parser.add_argument('--lr_max', type=float, default=0.01)
-    parser.add_argument('--bs_min', type=int, default=200)
-    parser.add_argument('--bs_max', type=int, default=200)
+    parser.add_argument('--lr_min', type=float, default=0.001)
+    parser.add_argument('--lr_max', type=float, default=0.001)
+    parser.add_argument('--bs_min', type=int, default=0)
+    parser.add_argument('--bs_max', type=int, default=0)
     parser.add_argument('--n_lr', type=int, default=1)
     parser.add_argument('--n_bs', type=int, default=1)
 
     # Do we call the batch simu or not
-    parser.add_argument("--script", type=str, default="batch")
+    parser.add_argument("--script", type=str, default="full_batch")
 
     # Parameters which are launcher specific
     # parser.add_argument('--grid_size', type=int, default=10)
     parser.add_argument('--seed', type=int, default=SEED)
-    parser.add_argument('--num_seeds_per_hparam', type=int, default=10)    
+    parser.add_argument('--num_seeds_per_hparam', type=int, default=1)    
 
     parser.add_argument('--result_dir', type=str, default=RESULT_DIR)
 
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     # parser.add_argument('--eta', type=float, default=0.01)
     parser.add_argument('--n', type=int, default=1000)
     parser.add_argument('--n_val', type=int, default=1000)
-    parser.add_argument('--n_ergodic', type=int, default=500)
+    parser.add_argument('--n_ergodic', type=int, default=1000)
     parser.add_argument('--n_classes', type=int, default=2)
     parser.add_argument('--decay', type=float, default=0.01)
     parser.add_argument('--depth', type=int, default=1)
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     parser.add_argument('--compute_gradients', type=int, default=1)
     parser.add_argument('--bias', type=int, default=0)
     parser.add_argument('--data_type', type=str, default="cifar10")
-    parser.add_argument('--model', type=str, default="fcnn") # Currently, it only works with batch simulation
+    parser.add_argument('--model', type=str, default="cnn") # Currently, it only works with batch simulation
     parser.add_argument('--stopping', type=int, default=0) # whether or not use the stopping criterion
     parser.add_argument('--scale_sigma', type=int, default=0)
 

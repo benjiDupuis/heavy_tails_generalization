@@ -126,7 +126,7 @@ def vector_robust_mean(tab: np.ndarray, quantile: float = 0.1):
 
 
 
-def matrix_robust_mean(tab: np.ndarray, quantile: float = 0.):
+def matrix_robust_mean(tab: np.ndarray, quantile: float = 0.1):
     """
     Used to compute means and standard deviations on some experiments
     """

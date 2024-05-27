@@ -177,7 +177,7 @@ def run_one_simulation(horizon: int,
     gradient_mean_unormalized = float(np.array(gradient_norm_list).mean()) if compute_gradients else "non_computed"
 
     return float(generalization), loss_tab, accuracy_tab,\
-          None, gradient_mean, converged, gradient_mean_unormalized, batch_acc_tab
+           gradient_mean, converged, gradient_mean_unormalized, batch_acc_tab, n_params
 
 
 def stable_normalization(alpha: float, d: float) -> float:
@@ -229,10 +229,10 @@ def run_and_save_one_simulation(result_dir: str,
                         width: int = 50,
                         data_seed: int = 1,
                         model_seed: int = 42,
-                        normalization: bool = True,
+                        normalization: bool = False,
                         id_sigma: int = 0,
                         id_alpha: int = 0,
-                        compute_gradient: bool = False,
+                        compute_gradient: bool = True,
                         bias: bool = False,
                         data_type: str = "mnist",
                         subset: float = 0.01,
@@ -256,6 +256,7 @@ def run_and_save_one_simulation(result_dir: str,
         classes = [int(c) for c in classes]
     
 
+    # Loading of the data
     if data_type == "mnist":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
@@ -268,7 +269,7 @@ def run_and_save_one_simulation(result_dir: str,
     elif data_type == "cifar10":
         np.random.seed(data_seed)
         torch.manual_seed(data_seed)
-        data = get_data_simple("cifar10", "~/data", batch_size, 256, subset=subset, resize=resize, class_list=classes)
+        data = get_data_simple("cifar10", "~/data", batch_size, 512, subset=subset, resize=resize, class_list=classes)
 
         # adapt the input dimension
         d = resize**2 * 3
@@ -283,7 +284,7 @@ def run_and_save_one_simulation(result_dir: str,
         d = resize**2
         n_classes = 10 if classes is None else len(classes)
 
-    # TODO remove this hack
+    # TODO remove this HACK
     initialization = None 
 
     if model=="fcnn":
@@ -305,7 +306,7 @@ def run_and_save_one_simulation(result_dir: str,
     # Normalization, if necessary
     normalization_factor = stable_normalization(alpha, n_params)
     if normalization:
-        # sigma_simu = normalization_factor * sigma   # Too dangerous
+        sigma_simu = normalization_factor * sigma   # Too dangerous
         logger.info(f"Normalization factor: {normalization_factor}")
     else:
         sigma_simu = sigma
@@ -313,8 +314,8 @@ def run_and_save_one_simulation(result_dir: str,
     K_constant = asymptotic_constant(alpha, n_params)
 
     generalization, _, accuracy_tab,\
-          _, gradient_mean, converged, \
-          gradient_mean_unormalized, _ = run_one_simulation(horizon, 
+        gradient_mean, converged, \
+          gradient_mean_unormalized, _, n_params= run_one_simulation(horizon, 
                                     d,
                                     eta,
                                     sigma_simu,
@@ -351,6 +352,8 @@ def run_and_save_one_simulation(result_dir: str,
     # Correct value of n
     n = len(data[0])
     n_val = len(data[2])
+
+    logger.debug(f"K: {K_constant}, horizon: {horizon}, gradient_mean: {gradient_mean}, n: {n}, sigma: {sigma}, alpha: {alpha}")
 
     bound = np.sqrt(K_constant * horizon * gradient_mean / (n * np.power(sigma, alpha)))
 
@@ -398,10 +401,11 @@ def run_and_save_one_simulation(result_dir: str,
 
     result_path = (result_dir / f"result_{id_sigma}_{id_alpha}_{width}_{batch_size}_{id_eta}").with_suffix(".json")
 
-    logger.info(f"Saving results JSON file in {str(result_path)}")
-
     with open(str(result_path), "w") as result_file:
         json.dump(result_dict, result_file, indent = 2)
     logger.info(json.dumps(result_dict, indent=2))
+
+    logger.info(f"Saved results JSON file in {str(result_path)}  ✅")
+
 
     

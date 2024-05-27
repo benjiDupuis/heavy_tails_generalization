@@ -2,12 +2,21 @@ import json
 from pathlib import Path
 
 import fire
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
 from last_point.simulation import asymptotic_constant
+
+plt.style.use("default")
+
+font = {'weight' : 'bold',
+        'size'   : 14}
+
+matplotlib.rc('font', **font)
+
 
 
 def plot_bound(gen_tab, bound_tab, output_dir: str,
@@ -44,9 +53,17 @@ def plot_bound(gen_tab, bound_tab, output_dir: str,
 
     plt.xlabel(xlabel, weight="bold")
     plt.ylabel("Estimated bound", weight="bold")
+
+    plt.tight_layout()
+
     logger.info(f"Saving a bound plot in {str(output_path)}")
-    plt.grid()
-    plt.savefig(str(output_path), bbox_inches='tight')
+    plt.grid(True)
+    plt.savefig(str(output_path), pad_inches='tight')
+
+    output_path = (output_dir / ("estimated bound versus generalization_alpha_"  + stem )).with_suffix(".pdf")
+    plt.savefig(str(output_path), pad_inches='tight')
+    logger.info(f"Saving a bound plot in {str(output_path)}")
+
     plt.close()
 
 
@@ -59,6 +76,8 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
     n_sigma = len(sigma_tab)
     n_alpha = len(alpha_tab)
 
+    assert gen_grid.shape == (n_sigma, n_alpha), (gen_grid.shape, (n_sigma, n_alpha))
+
     logger.info(f"Saving all figures in {output_dir}")
 
     # Actually, in our case, sigma is n_params, but it works the same
@@ -66,7 +85,7 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
 
         plt.figure()
         if deviation_grid is not None:
-            plt.plot(alpha_tab, gen_grid[s, :], color="r")
+            plt.plot(alpha_tab, gen_grid[s, :], color="r", label="Mean accuracy gap")
             plt.fill_between(alpha_tab, 
                              gen_grid[s, :] - deviation_grid[s, :],
                                gen_grid[s, :] + deviation_grid[s, :],
@@ -76,17 +95,29 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
             plt.scatter(alpha_tab, gen_grid[s, :])          
 
         # Saving the figure
+        plt.legend()
+        plt.ylabel("Accuracy gap (%)", weight="bold")
+        plt.xlabel(r"Tail index $\alpha$", weight="bold")
+        plt.tight_layout()
+        plt.grid(True)
+
         fig_name = (f"{sigma_tab[s]}").replace(".","_")
         output_path = (output_dir / fig_name).with_suffix(".png")
-        plt.savefig(str(output_path))
+        plt.savefig(str(output_path), pad_inches=0.01)
+        logger.info(f"Saved figure in {str(output_path)}")
+
+        output_path = (output_dir / fig_name).with_suffix(".pdf")
+        plt.savefig(str(output_path), pad_inches=0.01)
+        logger.info(f"Saved figure in {str(output_path)}")
+
         plt.close()
 
     for a in tqdm(range(n_alpha)):
 
             plt.figure()
             if deviation_grid is not None:
-                plt.plot(alpha_tab, gen_grid[:, a], color="r")
-                plt.fill_between(alpha_tab, 
+                plt.plot(sigma_tab, gen_grid[:, a], color="r", label="Mean accuracy gap")
+                plt.fill_between(sigma_tab, 
                                 gen_grid[:, a] - deviation_grid[:, a],
                                 gen_grid[:, a] + deviation_grid[:, a],
                                 color="r",
@@ -96,9 +127,21 @@ def plot_one_seed(gen_grid, sigma_tab, alpha_tab, output_dir: str, deviation_gri
             plt.xscale("log")        
 
             # Saving the figure
+            plt.legend()
+            plt.tight_layout()
+            plt.grid(True)
+            plt.ylabel("Accuracy gap (%)", weight="bold")
+            plt.xlabel(r"Tail index $\alpha$", weight="bold")
+
             fig_name = (f"alpha_{alpha_tab[a]}").replace(".","_")
             output_path = (output_dir / fig_name).with_suffix(".png")
-            plt.savefig(str(output_path))
+            plt.savefig(str(output_path), pad_inches=0.01)
+            logger.info(f"Saved figure in {str(output_path)}")
+
+            output_path = (output_dir / fig_name).with_suffix(".pdf")
+            plt.savefig(str(output_path), pad_inches=0.01)
+            logger.info(f"Saved figure in {str(output_path)}")
+
             plt.close()
     
 
@@ -259,7 +302,7 @@ def analyze_one_seed(json_path: str, R: float=1.):
         # The value of R can be changed here
         # In the example provided (the one in the main section of the paper),
         # R is estimated to approximately 7
-        R = 7
+        R = 1
 
         # The factor two appearing here comes from an optimized PAC-Bayesian generalization bound for bounded losses
         acc_bound_tab.append(100. * np.sqrt((constant * horizon * lr * gradient)/\
@@ -277,7 +320,7 @@ def analyze_one_seed(json_path: str, R: float=1.):
 
     # plot_one_seed(acc_gen_grid, sigma_factor_tab, alpha_tab, str(output_dir), acc_gen_grid_deviation)
     plot_bound(acc_tab, acc_bound_tab, output_dir, sigma_factor_values,\
-                alpha_values, log_scale=False, stem=f"accuracy_R_{R}")
+                alpha_values, log_scale=True, stem=f"accuracy_R_{R}")
 
 
 def main(json_path: str):

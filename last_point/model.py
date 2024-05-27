@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class NoisyGDModel(nn.Module):
 
     input_dim: int
@@ -217,14 +218,15 @@ class NoisyCNN(NoisyGDModel):
         return x
 
 
+
 if __name__ == "__main__":
     # For testing
     noisyCNN = NoisyCNN()
     s = noisyCNN.__str__()
     print(s)
-    print(NoisyCNN(width=42).params_number())
-    print(NoisyCNN(width=120).params_number())
-    print(NoisyCNN(width=200).params_number())
+    print(NoisyCNN(width=42, out_features=4).params_number())
+    print(NoisyCNN(width=120, out_features=4).params_number())
+    print(NoisyCNN(width=500, out_features=4).params_number())
 
     s = noisyCNN.__str__()
     from loguru import logger
