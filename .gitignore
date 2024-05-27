@@ -21,6 +21,8 @@ results
 
 simulation.batch
 
+*.batch
+
 .pytest_cache/
 
 __pychache__/
